@@ -159,6 +159,19 @@
     .comparison span { font-size: 12px; color: var(--subtle); }
     .comparison strong { font: 20px var(--mono); font-weight: 500; }
     .comparison.tree strong { color: var(--green); }
+    .group-views { margin: 22px 0; }
+    .comparison-table-scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+    .comparison-table { width: 100%; min-width: 760px; table-layout: fixed; border-collapse: collapse; }
+    .comparison-table th, .comparison-table td { text-align: left; vertical-align: top; padding: 16px; border-bottom: 1px solid var(--line); }
+    .comparison-table thead th { font: 10px/1.5 var(--mono); text-transform: uppercase; letter-spacing: .04em; color: var(--subtle); background: #eef0e7; }
+    .comparison-table tbody th { font-size: 15px; font-weight: 500; line-height: 1.4; }
+    .comparison-table td { font-size: 12px; line-height: 1.65; }
+    .comparison-table tbody tr:last-child > * { border-bottom: 0; background: var(--green-soft); }
+    .comparison-table .approach-note { display: block; margin-top: 7px; font-size: 11px; font-weight: 400; line-height: 1.65; color: var(--subtle); }
+    .comparison-table .ciphertext-count { display: block; margin-bottom: 5px; font: 19px var(--mono); color: var(--green); }
+    .comparison-context { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 12px; }
+    .comparison-scroll-hint { display: none; }
+    .group-costs { margin-top: 0; }
     .chart { width: 100%; height: 245px; }
     .legend { display: flex; flex-wrap: wrap; gap: 19px; font-size: 10px; color: var(--subtle); margin-top: 15px; }
     .legend span { display: flex; align-items: center; gap: 7px; }
@@ -324,6 +337,7 @@
       .slide h2 { font-size: 42px; }
       .lead { font-size: 15px; }
       .chart { height: auto; }
+      .comparison-scroll-hint { display: block; font-size: 11px; }
       .history-detail { grid-template-columns: .35fr 1fr; }
       .history-detail > .callout { grid-column: 2; }
       .history-number { font-size: 75px; }
@@ -540,7 +554,7 @@
     const chapters = ['Why E2EE', 'A little history', 'Inside MLS', 'Building with MLS'];
     const chapterStarts = [0, 2, 4, 9];
     const state = {
-      slide: 0, notes: false, transport: 'tls', milestone: 0, groupPower: 6,
+      slide: 0, notes: false, transport: 'tls', milestone: 0, groupView: 'compare', groupPower: 6,
       treeMember: 0, security: 'safe', lifecycle: 0, codeTab: 0,
       quizQuestion: 0, quizAnswers: [], quizComplete: false,
       lab: freshLab()
@@ -582,7 +596,7 @@
       { chapter:0, title:'Privacy is a group effort.', kicker:'Why end-to-end encryption', source:'architecture', sourceLabel:'Based on RFC 9750 and RFC 9420', notes:'Open with a simple question: should the company delivering your conversation need access to its words? E2EE moves content protection to participants’ devices. Explain that this is a developer-oriented introduction, with conceptual demonstrations rather than real cryptography. The path is why E2EE, a short history, MLS mechanics, and integration.', render:coverSlide },
       { chapter:0, title:'Who holds the keys?', kicker:'01 / The reason for E2EE', source:'architecture', sourceLabel:'RFC 9750, Introduction and Security Goals', notes:'Select Transport encryption first, then End-to-end encryption. In a common client-server messaging design, TLS protects each connection but the server processes plaintext. E2EE protects the content across that server boundary. TLS remains useful underneath E2EE. Authentication and secure endpoints are assumptions. Avoid suggesting that E2EE hides all metadata.', render:transportSlide },
       { chapter:1, title:'From private mail to private groups.', kicker:'02 / A little history', source:'announcement', sourceLabel:'Primary historical sources in each milestone', notes:'Walk from PGP through OTR and the Double Ratchet before selecting MLS. These are selected milestones in messaging security, not a strict replacement chain. OTR’s 2004 publication is linked from its project page. The Double Ratchet milestone uses a decade rather than claiming an exact invention date. RFC 9420 dates to July 2023 and RFC 9750 to April 2025.', render:historySlide },
-      { chapter:1, title:'Groups change. Key distribution gets harder.', kicker:'02 / The group problem', source:'protocol', sourceLabel:'RFC 9420 §1; idealized update model', notes:'Move the group size slider. The chart compares n−1 separate recipient envelopes with log2(n) copath envelopes in an ideal full binary ratchet tree, for powers of two only. This is a teaching model, not a benchmark or a bound on every MLS Commit. Blank nodes, resolution size, proposals, public-tree data, and fanout all affect practical costs. Sender-key schemes are more efficient for application messages than naive pairwise fanout, but recovery is a separate challenge.', render:scaleSlide },
+      { chapter:1, title:'Groups change. Key distribution gets harder.', kicker:'02 / The group problem', source:'protocol', sourceLabel:'RFC 9420 §1; group strategies and ideal update model', notes:'Start with Compare approaches. The classic Double Ratchet secures a two-party session. Building a full mesh for n devices means n(n−1)/2 pairwise sessions, and naive pairwise sending produces n−1 ciphertexts per group message. Sender keys use pairwise channels for setup but a shared sender chain for messages, so they avoid that per-message duplication. A hash ratchet provides forward secrecy with key deletion but does not by itself heal a stolen sender chain. Fresh sender keys need secure redistribution. MLS also uses ratcheting: TreeKEM coordinates group key agreement and membership, while its separate secret tree supplies per-sender message ratchets. Both the Double Ratchet and MLS can recover from compromise under their respective assumptions, including loss of attacker access and suitable fresh key input. Then select Explore update costs and move the group size slider. The chart compares n−1 individually distributed secret envelopes with log2(n) copath envelopes in an ideal full binary ratchet tree, for powers of two only. It models one member’s fresh secret distribution, not application ciphertext counts, measured speed, or the cost of every MLS Commit. Tree shape, blank nodes, proposals, and fanout affect actual costs.', render:groupProblemSlide },
       { chapter:2, title:'Four ideas behind MLS.', kicker:'03 / Inside the protocol', source:'protocol', sourceLabel:'RFC 9420 §§5, 7, 8, 10, 12', notes:'Expand MLS as Messaging Layer Security. A KeyPackage is signed public invitation material, not a private key. TreeKEM handles group key agreement. Commits advance epochs. A separate secret tree derives per-sender, per-message keys. These two trees have different jobs. Devices are the unit of membership, so one human can occupy several leaves.', render:ideasSlide },
       { chapter:2, title:'One update travels up the tree.', kicker:'03 / The ratchet tree', source:'protocol', sourceLabel:'RFC 9420 §§4, 7, 12; simplified full tree', notes:'Click Alice, then Hana. Orange marks the updating leaf and direct path to the root. Green outlines mark copath subtrees: fresh path secrets are encrypted to their resolutions so other members can compute the new common state. The example is a full, balanced tree with eight clients. Everyone has the public tree, but each member only holds private key material for its own path. The ratchet tree is separate from the secret tree used for application messages.', render:treeSlide },
       { chapter:2, title:'A group changes. Its keys change with it.', kicker:'03 / Try the epoch lab', source:'protocol', sourceLabel:'RFC 9420 §§12–14; conceptual simulation', notes:'First propose adding Dana and point out that nothing happens to the active membership until Commit. Commit and note the Welcome. Take Chen offline, commit an update, reconnect Chen, and catch up the missing commits. Send a message before and after catch-up. Finally remove Bob. Bob loses access to new epochs but retains old content he already knew. This simulator assumes one accepted commit sequence and immediate delivery to online clients. It does not implement MLS cryptography.', render:labSlide },
@@ -610,9 +624,36 @@
       const m=milestones[state.milestone];
       return `${heading()}<p class="lead">The ambition stayed the same. The key management kept evolving.</p><div class="timeline-tabs" role="tablist" aria-label="Encryption milestones">${milestones.map((x,i)=>`<button class="milestone" id="history-tab-${i}" role="tab" aria-selected="${i===state.milestone}" aria-controls="history-detail" tabindex="${i===state.milestone?0:-1}" data-action="milestone" data-value="${i}"><span class="year">${x.year}</span><span class="name">${x.short}</span></button>`).join('')}</div><div class="history-detail" id="history-detail" role="tabpanel" aria-labelledby="history-tab-${state.milestone}"><div class="history-number" aria-hidden="true">${String(state.milestone+1).padStart(2,'0')}</div><div><h3>${m.title}</h3><p>${m.text}</p><p class="small" style="margin-top:14px">${external(m.url,m.label)}</p></div><div class="callout">${m.lesson}</div></div><p class="small" style="margin-top:18px">Select a milestone to explore. These are parallel lines of research, with different goals and trade-offs.</p>`;
     }
-    function scaleSlide() {
+    function groupProblemSlide() {
+      const compare=state.groupView==='compare';
+      return `${heading()}
+        <p class="lead">Double Ratchet secures two-party sessions. A group also needs to coordinate shared keys and changing membership.</p>
+        <div class="tabs group-views" role="tablist" aria-label="The group problem views">
+          <button class="tab" role="tab" id="group-compare-tab" aria-selected="${compare}" aria-controls="group-problem-panel" tabindex="${compare?0:-1}" data-action="group-view" data-value="compare">Compare approaches</button>
+          <button class="tab" role="tab" id="group-costs-tab" aria-selected="${!compare}" aria-controls="group-problem-panel" tabindex="${!compare?0:-1}" data-action="group-view" data-value="costs">Explore update costs</button>
+        </div>
+        <div id="group-problem-panel" role="tabpanel" aria-labelledby="${compare?'group-compare-tab':'group-costs-tab'}">${compare?groupApproachComparison():groupUpdateCosts()}</div>`;
+    }
+    function groupApproachComparison() {
+      return `<div class="comparison-context"><span class="small">For <strong>n member devices</strong>, comparing one group message.</span><span class="small comparison-scroll-hint">Scroll the table horizontally to compare.</span></div>
+        <div class="comparison-table-scroll" role="region" aria-label="Group protocol comparison, horizontally scrollable" tabindex="0" data-horizontal-scroll>
+          <table class="comparison-table">
+            <caption class="sr-only">Pairwise Double Ratchet sessions, sender keys, and MLS: ciphertext output, membership, and recovery.</caption>
+            <colgroup><col style="width:22%"><col style="width:18%"><col style="width:28%"><col style="width:32%"></colgroup>
+            <thead><tr><th scope="col">Approach</th><th scope="col">Sender’s output</th><th scope="col">Membership changes</th><th scope="col">Recovery after compromise</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Pairwise ${external(sourceURLs.signal,'Double Ratchet')}<span class="approach-note">Full mesh: n(n − 1) / 2 two-party sessions.</span></th><td><span class="ciphertext-count">n − 1</span>Separate recipient ciphertexts.</td><td>The application coordinates the roster and which recipient sessions to use.</td><td>Fresh DH input heals each affected session. The application must coordinate recovery across the group.</td></tr>
+              <tr><th scope="row">Sender keys<span class="approach-note">Sender hash chains, distributed over pairwise channels.</span></th><td><span class="ciphertext-count">1</span>Group ciphertext per message.</td><td>The application rotates and redistributes sender keys to fit the new membership.</td><td>Fresh sender keys need secure redistribution. A hash ratchet alone cannot heal a leaked sender chain.</td></tr>
+              <tr><th scope="row">MLS<span class="approach-note">TreeKEM agreement + per-sender message ratchets.</span></th><td><span class="ciphertext-count">1</span>Group ciphertext per message.</td><td>An accepted Commit applies Add/Remove proposals and advances the epoch.</td><td>Fresh updates from recovered members refresh group secrets through the ratchet tree.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout"><strong>MLS uses ratchets too.</strong> Its advantage here is coordinating group membership and fresh shared state. Both MLS and the Double Ratchet support forward secrecy and recovery under their respective assumptions.</div>
+        <p class="small" style="margin-top:14px">Counts describe sender ciphertexts, not delivery copies: the service still fans out to recipients. Forward secrecy needs key deletion. Recovery assumes the attacker loses device access and fresh key updates succeed.</p>`;
+    }
+    function groupUpdateCosts() {
       const n=2**state.groupPower;
-      return `${heading()}<div class="split"><div><p class="lead">Adding people is only half the problem. Keys also need to change when a device refreshes its secrets or a member leaves.</p><div class="group-control" style="margin-top:25px"><div><span class="subhead">Group size</span><output class="big-number" id="group-size" for="group-range">${n.toLocaleString()}</output></div><label for="group-range">member devices</label></div><input type="range" id="group-range" min="1" max="10" step="1" value="${state.groupPower}" aria-label="Group size, in powers of two" aria-valuetext="${n} member devices"><div class="range-labels"><span>2 devices</span><span>1,024 devices</span></div><div class="comparisons" id="scale-counts">${scaleCounts()}</div></div><figure class="panel white-panel"><div class="subhead">Illustrative encrypted envelopes per refresh</div><div id="scale-chart">${scaleChart()}</div><div class="legend"><span><i class="swatch"></i>Separate recipient envelopes</span><span><i class="swatch green"></i>Ideal binary-tree envelopes</span></div><figcaption class="small" style="margin-top:15px">A full, balanced tree gives a logarithmic update path. This model counts envelopes, not bytes, total delivery traffic, or measured speed.</figcaption></figure></div><div class="callout">Real MLS costs depend on tree shape, blank nodes, and Commit contents. The service still delivers the update to the group.</div>`;
+      return `<div class="split group-costs"><div><p class="lead">Now compare distributing <strong>one member’s fresh secret</strong> separately to each recipient with using an ideal MLS tree.</p><div class="group-control" style="margin-top:25px"><div><span class="subhead">Group size</span><output class="big-number" id="group-size" for="group-range">${n.toLocaleString()}</output></div><label for="group-range">member devices</label></div><input type="range" id="group-range" min="1" max="10" step="1" value="${state.groupPower}" aria-label="Group size, in powers of two" aria-valuetext="${n} member devices"><div class="range-labels"><span>2 devices</span><span>1,024 devices</span></div><div class="comparisons" id="scale-counts">${scaleCounts()}</div></div><figure class="panel white-panel"><div class="subhead">Illustrative encrypted secret envelopes per refresh</div><div id="scale-chart">${scaleChart()}</div><div class="legend"><span><i class="swatch"></i>Separate recipient envelopes</span><span><i class="swatch green"></i>Ideal binary-tree envelopes</span></div><figcaption class="small" style="margin-top:15px">A full, balanced tree gives a logarithmic update path. This model counts secret envelopes, not application ciphertexts, bytes, total delivery traffic, or measured speed.</figcaption></figure></div><div class="callout">Refreshing one sender key also needs recipient distribution. Refreshing all sender keys adds work. Real MLS costs depend on tree shape, blank nodes, and Commit contents.</div>`;
     }
     function scaleCounts() { const n=2**state.groupPower; return `<div class="comparison"><span>Separate recipients · n − 1</span><strong>${(n-1).toLocaleString()}</strong></div><div class="comparison tree"><span>Ideal tree · log₂(n)</span><strong>${state.groupPower}</strong></div>`; }
     function scaleChart() {
@@ -775,6 +816,7 @@
       else if(action==='fullscreen')fullscreen();
       else if(action==='transport'){state.transport=value;refresh(`[data-action="transport"][data-value="${value}"]`,value==='e2ee'?'E2EE: the service sees ciphertext.':'Transport encryption: the service can read message content.');}
       else if(action==='milestone'){state.milestone=n;refresh(`[data-action="milestone"][data-value="${n}"]`,milestones[n].title);}
+      else if(action==='group-view'){state.groupView=value;refresh(`[data-action="group-view"][data-value="${value}"]`,value==='compare'?'Comparing pairwise Double Ratchet sessions, sender keys, and MLS.':'Exploring one member’s fresh secret distribution costs.');}
       else if(action==='tree-member'){
         state.treeMember=n;document.getElementById('tree-diagram').innerHTML=treeDiagram();document.getElementById('tree-reading').innerHTML=treeReading();document.querySelectorAll('[data-action="tree-member"]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.value)===n)));announce(`${treeNames[n]} updates its leaf and three ancestors.`);
       }
@@ -802,6 +844,7 @@
     });
     document.addEventListener('keydown',event=>{
       if(event.altKey||event.metaKey||event.ctrlKey||event.target.closest('input, textarea, select, [contenteditable="true"]'))return;
+      if(event.target.closest('[data-horizontal-scroll]')&&['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
       const tablist=event.target.closest('[role="tablist"]');
       if(tablist&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)){
         const tabs=Array.from(tablist.querySelectorAll('[role="tab"]')), index=tabs.indexOf(event.target.closest('[role="tab"]'));

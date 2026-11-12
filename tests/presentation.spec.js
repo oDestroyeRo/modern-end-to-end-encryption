@@ -49,6 +49,7 @@ test('explores history, scaling, and the selected tree path', async ({ page }) =
   await page.getByRole('tab', { name: '2025 Architecture' }).click();
   await expect(page.getByRole('tabpanel')).toContainText('April 2025');
   await page.goto('/#slide=4');
+  await page.getByRole('tab', { name: 'Explore update costs' }).click();
   const range = page.getByRole('slider');
   await range.fill('10');
   await expect(page.locator('#group-size')).toHaveText('1,024');
@@ -63,6 +64,31 @@ test('explores history, scaling, and the selected tree path', async ({ page }) =
   await expect(page.getByRole('button', { name: 'Hana', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#tree-reading')).toContainText('Hana');
   await expect(page.locator('#tree-diagram svg')).toHaveAttribute('aria-label', /Hana's update/);
+});
+
+test('switches group comparisons, preserves group size, and scrolls without changing slides', async ({ page }) => {
+  await page.goto('/#slide=4');
+  const compare = page.getByRole('tab', { name: 'Compare approaches' });
+  const costs = page.getByRole('tab', { name: 'Explore update costs' });
+  await expect(compare).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('table')).toBeVisible();
+  await costs.click();
+  await page.getByRole('slider').fill('8');
+  await costs.focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(compare).toBeFocused();
+  await expect(page.getByRole('table')).toBeVisible();
+  await page.keyboard.press('ArrowRight');
+  await expect(costs).toBeFocused();
+  await expect(page.getByRole('slider')).toHaveValue('8');
+  await expect(page.locator('#group-size')).toHaveText('256');
+  await compare.click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const comparison = page.getByRole('region', { name: 'Group protocol comparison, horizontally scrollable' });
+  await comparison.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => comparison.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+  await expect(page).toHaveURL(/#slide=4$/);
 });
 
 test('applies membership only on commit and catches an offline client up', async ({ page }) => {
@@ -188,6 +214,8 @@ test('fits the presentation to the screen in fullscreen mode', async ({ page }) 
   await page.getByRole('button', { name: 'Enter fullscreen', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Exit fullscreen', exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.getElementById('app').getBoundingClientRect().bottom <= innerHeight)).toBe(true);
+  await page.getByRole('tab', { name: 'Explore update costs' }).click();
+  await expect.poll(() => page.evaluate(() => document.getElementById('app').getBoundingClientRect().bottom <= innerHeight)).toBe(true);
   await page.keyboard.press('n');
   await expect(page.locator('#notes')).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.getElementById('app').getBoundingClientRect().bottom <= innerHeight)).toBe(true);
@@ -203,6 +231,11 @@ test('keeps every slide inside desktop, tablet, and mobile widths', async ({ pag
       await expect(page.locator('#slide-title')).toBeVisible();
       const dimensions = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth }));
       expect(dimensions.scroll, `Slide ${slide} overflows at ${width}px`).toBeLessThanOrEqual(dimensions.width);
+      if (slide === 4) {
+        await page.getByRole('tab', { name: 'Explore update costs' }).click();
+        const costs = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth }));
+        expect(costs.scroll, `Group update chart overflows at ${width}px`).toBeLessThanOrEqual(costs.width);
+      }
     }
   }
 });
@@ -214,6 +247,11 @@ test('has no WCAG A/AA accessibility violations across all slides', async ({ pag
     await page.goto(`/#slide=${slide}`);
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     violations.push(...result.violations.map(v => ({ slide, id: v.id, targets: v.nodes.map(n => n.target) })));
+    if (slide === 4) {
+      await page.getByRole('tab', { name: 'Explore update costs' }).click();
+      const costs = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+      violations.push(...costs.violations.map(v => ({ slide, view: 'update costs', id: v.id, targets: v.nodes.map(n => n.target) })));
+    }
   }
   expect(violations).toEqual([]);
 });

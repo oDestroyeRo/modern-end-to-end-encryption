@@ -23,6 +23,8 @@ Open the printed address, normally `http://localhost:5173`. Set `PORT` to use an
 
 The demonstrations include an encryption-boundary switch, clickable history, a group-size slider, an explorable ratchet tree, and an epoch lab with add/remove/update operations and offline catch-up.
 
+“The group problem” also compares pairwise Double Ratchet sessions, sender keys, and MLS: ciphertext output, membership changes, and recovery after compromise. Switch to **Explore update costs** for the group-size chart. MLS itself uses ratchets, and the comparison distinguishes application ciphertexts from fresh-secret distribution costs.
+
 ## Presenting
 
 | Control | Action |
