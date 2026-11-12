@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive field guide to end-to-end encryption and the Messaging Layer Security protocol. Explore key trees, change group membership, and learn how to build with MLS.">
+  <meta name="theme-color" content="#f7f7f2">
+  <title>MLS, explained — An interactive field guide</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f7f2;
+      --ink: #272c28;
+      --subtle: #5f665e;
+      --line: #dadcd2;
+      --orange: #ad3c20;
+      --orange-soft: #f6e6db;
+      --green: #325b43;
+      --green-soft: #e6eddf;
+      --surface: #ffffff;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: "Helvetica Neue", Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--foreground, var(--ink)); font-family: var(--font-sans, var(--sans)); -webkit-font-smoothing: antialiased; }
+    button, input, select { font: inherit; }
+    button, a, input[type="range"], summary { -webkit-tap-highlight-color: transparent; }
+    button { cursor: pointer; }
+    button:disabled { cursor: default; opacity: .46; }
+    button, a, summary { touch-action: manipulation; }
+    button { color: inherit; }
+    button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--orange); outline-offset: 4px; }
+    h1, h2, h3, p, figure { margin: 0; }
+    h1, h2 { font-weight: 500; letter-spacing: -.052em; line-height: 1.04; text-wrap: balance; }
+    h3 { font-size: 21px; font-weight: 500; letter-spacing: -.025em; line-height: 1.25; }
+    a { color: var(--green); text-underline-offset: 4px; }
+    svg { display: block; max-width: 100%; }
+    .icon { width: 19px; height: 19px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .skip { position: absolute; top: -100px; left: 15px; z-index: 10; padding: 12px; background: var(--surface); }
+    .skip:focus { top: 8px; }
+    .app { max-width: 1440px; margin: 0 auto; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 94px; margin: 0 30px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 600; letter-spacing: -.025em; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; color: #fff; background: var(--orange); border-radius: 8px; }
+    .brand-slash { color: #989c92; padding: 0 4px; font-weight: 400; }
+    .topbar-right { display: flex; align-items: center; gap: 25px; }
+    .micro { font-family: var(--mono); text-transform: uppercase; font-size: 11px; letter-spacing: .1em; line-height: 1.5; }
+    .muted { color: var(--subtle); }
+    .tools { display: flex; gap: 6px; }
+    .tool { border: 1px solid transparent; background: none; width: 44px; height: 44px; border-radius: 9px; display: grid; place-items: center; transition: background .18s, border-color .18s; }
+    .tool:hover, .tool[aria-pressed="true"] { background: var(--secondary, var(--green-soft)); border-color: var(--border, var(--line)); }
+    .topbar .muted { color: var(--muted-foreground, var(--subtle)); }
+    .chapters { display: flex; gap: 7px; padding: 0 30px 20px; overflow-x: auto; scrollbar-width: thin; }
+    .chapter { white-space: nowrap; background: none; color: var(--muted-foreground, var(--subtle)); border: 1px solid transparent; border-radius: 99px; font-size: 12px; padding: 10px 16px; min-height: 42px; transition: background .18s; }
+    .chapter span { font-family: var(--mono); color: var(--muted-foreground, var(--subtle)); font-size: 10px; margin-right: 8px; }
+    .chapter:hover { background: var(--secondary, #f0f1e9); }
+    .chapter[aria-current="step"] { background: var(--ink); color: #fff; }
+    .chapter[aria-current="step"] span { color: #ced4c9; }
+    .stage { margin: 0 20px; border: 1px solid var(--line); border-radius: var(--radius, 18px); background: var(--paper); color: var(--ink); font-family: var(--sans); overflow: hidden; }
+    .slide { min-height: 650px; padding: 46px 54px 24px; display: flex; flex-direction: column; animation: enter .3s ease-out; }
+    .slide-content { flex: 1; }
+    .eyebrow { display: flex; align-items: center; gap: 9px; color: var(--subtle); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 22px; }
+    .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--orange); flex: 0 0 auto; }
+    .slide h2 { font-size: clamp(36px, 4.2vw, 59px); max-width: 1180px; margin-bottom: 20px; }
+    .slide h2:focus, .slide h1:focus { outline: none; }
+    .lead { color: var(--subtle); font-size: 17px; line-height: 1.65; max-width: 620px; }
+    .slide-foot { display: flex; justify-content: space-between; align-items: end; gap: 14px; padding-top: 27px; margin-top: 25px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 10px; color: var(--subtle); line-height: 1.6; }
+    .slide-foot a { color: var(--subtle); }
+    .slide-foot .folio { flex: 0 0 auto; letter-spacing: .12em; }
+    .split { display: grid; grid-template-columns: .88fr 1.25fr; gap: 45px; align-items: center; margin-top: 25px; }
+    .split.top { align-items: start; }
+    .cover-grid { display: grid; grid-template-columns: 1.04fr 1fr; align-items: center; gap: 20px; min-height: 480px; }
+    .cover h1 { font-size: clamp(52px, 5.8vw, 83px); margin-bottom: 25px; }
+    .serif { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 400; color: var(--orange); }
+    .cover .lead { max-width: 430px; font-size: 17px; }
+    .cover-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; color: var(--subtle); margin-bottom: 35px; font-size: 11px; font-family: var(--mono); }
+    .tag { border: 1px solid var(--line); border-radius: 99px; padding: 5px 9px; font-family: var(--mono); font-size: 10px; display: inline-flex; align-items: center; gap: 6px; color: var(--subtle); white-space: nowrap; }
+    .tag.green { border-color: #c3d1ba; background: var(--green-soft); color: var(--green); }
+    .tag.orange { border-color: #e3c4b5; background: var(--orange-soft); color: var(--orange); }
+    .actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 28px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 13px 18px; min-height: 46px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: #fff; text-decoration: none; transition: background .18s, transform .18s; }
+    .button:hover:not(:disabled) { background: #41493f; transform: translateY(-1px); }
+    .button.secondary { background: transparent; border-color: var(--line); color: var(--ink); }
+    .button.secondary:hover:not(:disabled) { background: var(--green-soft); }
+    .button.accent { background: var(--orange); border-color: var(--orange); }
+    .text-button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 5px 0; border: 0; background: none; font-size: 12px; color: var(--subtle); text-decoration: underline; text-underline-offset: 4px; }
+    .hero-art { position: relative; color: var(--green); width: 100%; max-width: 520px; justify-self: center; }
+    .hero-art svg { width: 100%; }
+    .hero-caption { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: -5px; color: var(--green); font-family: var(--mono); font-size: 10px; letter-spacing: .025em; }
+    .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .hero-orbit { transform-origin: 260px 235px; animation: breathe 6s ease-in-out infinite; }
+    .footer { padding: 22px 30px 25px; }
+    .progress { display: flex; gap: 5px; margin-bottom: 19px; }
+    .progress button { flex: 1; min-width: 0; height: 20px; background: none; border: 0; padding: 7px 0; }
+    .progress button::after { content: ""; display: block; height: 3px; background: #dcdfd5; border-radius: 3px; transition: background .2s; }
+    .progress button.past::after { background: #acb7a4; }
+    .progress button[aria-current="step"]::after { background: var(--orange); }
+    .progress button:hover::after { background: var(--orange); }
+    .footer-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .key-hints { display: flex; gap: 18px; align-items: center; font-size: 11px; color: var(--muted-foreground, var(--subtle)); }
+    .footer .text-button { color: var(--muted-foreground, var(--subtle)); }
+    kbd { font-family: var(--font-mono, var(--mono)); font-size: 10px; background: var(--secondary, #f4f5f0); border: 1px solid var(--border, var(--line)); border-radius: 4px; padding: 3px 5px; margin-right: 3px; }
+    .slide-controls { display: flex; align-items: center; gap: 15px; }
+    .counter { min-width: 63px; color: var(--muted-foreground, var(--subtle)); font: 11px var(--mono); }
+    .nav-button { display: grid; place-items: center; background: none; border: 1px solid var(--border, var(--line)); border-radius: 8px; width: 44px; height: 44px; }
+    .nav-button.next { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .nav-button:hover:not(:disabled) { border-color: var(--orange); }
+    .notes { margin: 0 20px 20px; background: var(--green-soft); color: var(--ink); border: 1px solid #c6d2be; border-radius: 10px; padding: 20px 24px; font-size: 14px; line-height: 1.7; }
+    .notes h3 { font: 10px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--green); margin-bottom: 10px; }
+    [hidden] { display: none !important; }
+    .panel { border: 1px solid var(--line); border-radius: 12px; padding: 24px; background: #f0f1e9; }
+    .white-panel { background: var(--surface); }
+    .callout { padding: 14px 17px; border-left: 2px solid var(--orange); background: var(--orange-soft); color: #763a25; font-size: 12px; line-height: 1.65; margin-top: 20px; }
+    .small { font-size: 12px; color: var(--subtle); line-height: 1.7; }
+    .subhead { font: 10px var(--mono); color: var(--subtle); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 14px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 10px; background: #eceee5; width: fit-content; }
+    .tab { background: none; border: 1px solid transparent; padding: 11px 15px; min-height: 42px; border-radius: 6px; font-size: 12px; color: var(--subtle); }
+    .tab[aria-selected="true"] { background: var(--surface); color: var(--ink); border-color: var(--line); box-shadow: 0 2px 3px #22221107; }
+    .concept-list { display: grid; gap: 18px; margin-top: 24px; }
+    .concept { display: flex; align-items: flex-start; gap: 12px; }
+    .concept .icon { color: var(--green); margin-top: 1px; }
+    .concept strong { display: block; font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+    .concept p { color: var(--subtle); font-size: 12px; line-height: 1.6; }
+    .transport { margin-top: 24px; }
+    .route { display: grid; grid-template-columns: 1fr .5fr 1.18fr .5fr 1fr; align-items: center; margin-top: 20px; }
+    .endpoint { text-align: center; }
+    .device { display: grid; place-items: center; width: 56px; height: 66px; border: 1.5px solid #9ba78e; border-radius: 10px; background: var(--green-soft); margin: 0 auto 10px; }
+    .device .icon { width: 28px; height: 28px; color: var(--green); }
+    .endpoint strong { display: block; font-size: 13px; font-weight: 500; }
+    .endpoint span { display: block; font-size: 11px; color: var(--subtle); margin-top: 4px; }
+    .wire { border-top: 1px dashed #9aab90; position: relative; margin-top: -45px; }
+    .wire .icon { position: absolute; top: -9px; left: calc(50% - 8px); width: 16px; height: 16px; color: var(--green); background: #f0f1e9; }
+    .server { padding: 20px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; text-align: center; }
+    .server > .icon { width: 27px; height: 27px; margin: 0 auto 10px; color: var(--subtle); }
+    .server h3 { font-size: 13px; }
+    .payload { padding: 14px 8px; margin: 14px -17px; background: var(--orange-soft); color: var(--orange); border: 1px solid #e0c3b3; border-radius: 6px; font: 11px var(--mono); white-space: nowrap; }
+    .payload.encrypted { background: var(--green-soft); color: var(--green); border-color: #c3d1ba; letter-spacing: 1px; }
+    .route-message { margin-top: 20px; font-size: 13px; line-height: 1.7; min-height: 65px; }
+    .timeline-tabs { display: grid; grid-template-columns: repeat(5,1fr); margin: 30px 0 0; border-bottom: 1px solid var(--line); gap: 0; }
+    .milestone { border: 0; background: none; position: relative; padding: 15px 5px 22px; text-align: left; color: var(--subtle); }
+    .milestone::after { content: ""; position: absolute; width: 7px; height: 7px; border-radius: 50%; background: #b9c0b1; left: 5px; bottom: -4px; }
+    .milestone[aria-selected="true"]::after { background: var(--orange); box-shadow: 0 0 0 5px var(--orange-soft); }
+    .milestone .year { display: block; font-size: 27px; letter-spacing: -.06em; margin-bottom: 9px; }
+    .milestone .name { font: 10px var(--mono); }
+    .milestone[aria-selected="true"] { color: var(--orange); }
+    .history-detail { display: grid; grid-template-columns: .45fr 1.1fr 1fr; gap: 40px; margin-top: 36px; align-items: start; min-height: 170px; }
+    .history-number { font-family: Georgia,serif; color: #7c876f; font-size: 100px; line-height: 1; letter-spacing: -.08em; }
+    .history-detail h3 { font-size: 28px; margin-bottom: 12px; }
+    .history-detail p { font-size: 14px; line-height: 1.7; color: var(--subtle); }
+    .history-detail .callout { margin-top: 0; }
+    .group-control { display: flex; align-items: end; justify-content: space-between; gap: 10px; }
+    .big-number { display: block; font-size: 66px; font-weight: 500; letter-spacing: -.07em; line-height: 1; }
+    .group-control label { font-size: 12px; color: var(--subtle); }
+    input[type="range"] { display: block; width: 100%; accent-color: var(--orange); min-height: 44px; margin: 15px 0 4px; }
+    .range-labels { display: flex; justify-content: space-between; font: 10px var(--mono); color: var(--subtle); }
+    .comparisons { margin-top: 20px; border-top: 1px solid var(--line); }
+    .comparison { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+    .comparison span { font-size: 12px; color: var(--subtle); }
+    .comparison strong { font: 20px var(--mono); font-weight: 500; }
+    .comparison.tree strong { color: var(--green); }
+    .chart { width: 100%; height: 245px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 19px; font-size: 10px; color: var(--subtle); margin-top: 15px; }
+    .legend span { display: flex; align-items: center; gap: 7px; }
+    .swatch { width: 15px; height: 3px; background: var(--orange); display: inline-block; }
+    .swatch.green { background: var(--green); }
+    .swatch.gray { background: #c5cdba; }
+    .idea-grid { display: grid; grid-template-columns: repeat(4,1fr); margin-top: 38px; }
+    .idea { padding: 0 24px; border-left: 1px solid var(--line); }
+    .idea:first-child { padding-left: 0; border: 0; }
+    .idea:last-child { padding-right: 0; }
+    .idea .idea-icon { width: 55px; height: 55px; display: grid; place-items: center; background: var(--green-soft); color: var(--green); border-radius: 12px; margin-bottom: 22px; }
+    .idea .idea-icon .icon { width: 25px; height: 25px; }
+    .idea h3 { margin: 10px 0 12px; font-size: 23px; }
+    .idea p { font-size: 13px; line-height: 1.75; color: var(--subtle); }
+    .protocol-strip { display: flex; align-items: center; gap: 16px; margin-top: 38px; padding: 18px 22px; border-radius: 9px; background: var(--green-soft); color: var(--green); font-size: 13px; line-height: 1.7; }
+    .protocol-strip .icon { width: 24px; height: 24px; }
+    .tree-panel { padding: 18px; }
+    .tree-svg { width: 100%; }
+    .tree-choices { display: grid; grid-template-columns: repeat(8,1fr); gap: 3px; margin-top: 1px; }
+    .tree-choices button { padding: 10px 0; min-height: 44px; font-size: 10px; border: 1px solid transparent; border-radius: 6px; background: none; color: var(--subtle); }
+    .tree-choices button[aria-pressed="true"] { border-color: #dfbba9; color: var(--orange); background: var(--orange-soft); }
+    .tree-choices button:hover { background: var(--orange-soft); }
+    .tree-reading { margin-top: 22px; font-size: 15px; line-height: 1.7; }
+    .tree-reading strong { color: var(--orange); font-weight: 500; }
+    .lab { margin-top: 25px; display: grid; grid-template-columns: .82fr 1.2fr; gap: 28px; }
+    .lab-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .lab-buttons .button { padding: 11px 12px; justify-content: flex-start; font-size: 12px; }
+    .pending { margin-top: 18px; padding: 16px; border: 1px dashed #b3bba7; border-radius: 9px; min-height: 100px; background: #eef0e7; }
+    .pending .button { margin-top: 12px; padding: 10px 14px; min-height: 40px; }
+    .pending strong { font-size: 13px; font-weight: 500; display: block; margin: 6px 0; }
+    .epoch-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+    .epoch-top strong { font-size: 36px; letter-spacing: -.05em; font-weight: 500; }
+    .member-list { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .member { display: flex; align-items: center; gap: 10px; padding: 11px; border: 1px solid #d1d9c8; border-radius: 8px; background: var(--surface); }
+    .avatar { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50%; font: 12px var(--mono); color: var(--green); background: var(--green-soft); flex-shrink: 0; }
+    .member strong { display: block; font-size: 12px; font-weight: 500; }
+    .member small { font-size: 10px; color: var(--subtle); line-height: 1.6; }
+    .member.waiting { border-style: dashed; border-color: #caa998; }
+    .member.removed { opacity: .65; background: transparent; }
+    .lab-offline { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 13px; }
+    .lab-offline button { font-size: 11px; }
+    .event-log { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); min-height: 66px; font-size: 11px; line-height: 1.8; color: var(--subtle); }
+    .event-log p + p { margin-top: 4px; }
+    .event-log strong { font-weight: 500; color: var(--green); }
+    .security-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 35px; margin-top: 32px; }
+    .security-grid > div { border-top: 1px solid var(--line); padding-top: 18px; }
+    .security-grid h3 { font-size: 22px; margin-bottom: 9px; }
+    .security-grid p { font-size: 13px; line-height: 1.7; color: var(--subtle); }
+    .security-demo { margin-top: 25px; }
+    .security-states { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .security-state { background: var(--green-soft); border: 1px solid #c9d4bf; padding: 15px; border-radius: 8px; }
+    .security-state .icon { color: var(--green); margin-bottom: 13px; }
+    .security-state strong { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; }
+    .security-state span { color: var(--green); font-size: 11px; line-height: 1.7; display: block; }
+    .security-state.exposed { background: var(--orange-soft); border-color: #d8b5a3; }
+    .security-state.exposed .icon, .security-state.exposed span { color: var(--orange); }
+    .security-state.future { background: #efefe7; border-color: var(--line); }
+    .security-state.future span, .security-state.future .icon { color: var(--subtle); }
+    .security-message { min-height: 44px; margin-top: 15px; }
+    .lifecycle { display: grid; grid-template-columns: .68fr 1.4fr; gap: 35px; margin-top: 28px; }
+    .step-list { display: grid; gap: 6px; }
+    .step { display: flex; align-items: center; gap: 14px; border: 1px solid transparent; border-radius: 8px; background: none; text-align: left; font-size: 13px; padding: 15px; min-height: 48px; }
+    .step .step-num { color: var(--subtle); font: 10px var(--mono); }
+    .step[aria-selected="true"] { background: var(--green-soft); border-color: #c7d3bc; color: var(--green); }
+    .step[aria-selected="true"] .step-num { color: var(--green); }
+    .lifecycle-detail { min-height: 300px; }
+    .lifecycle-detail h3 { font-size: 27px; margin: 24px 0 15px; }
+    .flow-parties { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .flow-party { display: flex; align-items: center; gap: 9px; font-size: 12px; }
+    .flow-link { flex: 1; height: 1px; border-top: 1px dashed #99a88b; }
+    .flow-label { font: 10px var(--mono); color: var(--green); margin: 25px 0 0; padding: 13px; border-radius: 7px; background: var(--green-soft); text-align: center; }
+    .code-layout { display: grid; grid-template-columns: .68fr 1.2fr; gap: 38px; margin-top: 28px; align-items: start; }
+    .code-panel { color: #e5eada; background: #273129; border: 1px solid #3e4b3f; border-radius: 12px; overflow: hidden; }
+    .code-bar { display: flex; gap: 6px; align-items: center; padding: 13px 18px; border-bottom: 1px solid #475041; font: 10px var(--mono); color: #b5c1ac; }
+    .code-dot { width: 5px; height: 5px; background: #8a9a7c; border-radius: 50%; }
+    .code-bar span:last-child { margin-left: auto; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 24px; font: 12px/1.85 var(--mono); tab-size: 2; }
+    .code-comment { color: #b0bf9c; }
+    .code-keyword { color: #f4b18b; }
+    .code-string { color: #d2e5a9; }
+    .code-note { padding: 13px 24px; border-top: 1px solid #475041; font: 10px/1.6 var(--mono); color: #c0cbb6; }
+    .code-description h3 { font-size: 26px; margin: 25px 0 12px; }
+    .architecture { display: flex; align-items: center; gap: 15px; margin-top: 20px; }
+    .arch-box { flex: 1; min-width: 0; padding: 22px 12px; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; text-align: center; }
+    .arch-box h3 { font-size: 15px; margin: 12px 0 7px; }
+    .arch-box .icon { margin: 0 auto; color: var(--green); width: 24px; height: 24px; }
+    .arch-box.primary { background: var(--green-soft); border-color: #becdaf; }
+    .architecture > .icon { width: 24px; color: var(--subtle); }
+    .responsibilities { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 25px; margin-top: 25px; }
+    details { border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+    summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; padding: 10px 0; min-height: 44px; font-size: 14px; list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; font: 18px var(--mono); color: var(--orange); }
+    details[open] summary::after { content: "−"; }
+    details p { color: var(--subtle); font-size: 12px; line-height: 1.75; padding-right: 20px; }
+    .quiz-layout { display: grid; grid-template-columns: .6fr 1.3fr; gap: 50px; margin-top: 30px; }
+    .quiz-index { font: 11px var(--mono); color: var(--subtle); margin-bottom: 18px; }
+    .quiz-question { font-size: 25px; line-height: 1.3; letter-spacing: -.025em; margin-bottom: 20px; }
+    .answers { display: grid; gap: 8px; }
+    .answer { display: flex; align-items: center; gap: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 14px 16px; min-height: 49px; text-align: left; font-size: 13px; line-height: 1.5; }
+    .answer .answer-letter { font: 10px var(--mono); color: var(--subtle); padding: 4px 6px; background: #f0f2e9; border: 1px solid var(--line); border-radius: 3px; }
+    .answer:hover:not(:disabled) { border-color: var(--green); }
+    .answer.correct { background: var(--green-soft); border-color: #9fb68d; opacity: 1; }
+    .answer.incorrect { background: var(--orange-soft); border-color: #cda590; opacity: 1; }
+    .quiz-feedback { margin-top: 16px; font-size: 12px; line-height: 1.7; color: var(--subtle); min-height: 45px; }
+    .quiz-score { font-size: 85px; line-height: 1; letter-spacing: -.07em; color: var(--green); margin-bottom: 15px; }
+    .closing { text-align: center; padding-top: 30px; }
+    .closing .eyebrow { justify-content: center; }
+    .closing h2 { font-size: clamp(43px,5.5vw,78px); margin: 18px auto 22px; max-width: 850px; }
+    .closing .lead { margin: 0 auto; max-width: 610px; font-size: 16px; }
+    .closing .actions { justify-content: center; }
+    .closing-links { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; text-align: left; margin: 40px auto 0; max-width: 850px; }
+    .closing-link { padding-top: 18px; border-top: 1px solid var(--line); }
+    .closing-link a { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; color: var(--ink); text-decoration: none; }
+    .closing-link p { margin-top: 9px; font-size: 12px; line-height: 1.7; color: var(--subtle); }
+    dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--paper); color: var(--ink); padding: 28px; width: min(820px,calc(100% - 36px)); max-height: 85%; overflow-y: auto; box-shadow: 0 24px 100px #15211530; }
+    dialog::backdrop { background: #20291f60; backdrop-filter: blur(5px); }
+    .dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    .dialog-heading h2 { font-size: 30px; }
+    .overview-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+    .overview-item { min-height: 130px; padding: 17px; border: 1px solid var(--line); border-radius: 9px; text-align: left; background: var(--surface); transition: border-color .2s; }
+    .overview-item:hover { border-color: var(--orange); }
+    .overview-item[aria-current="step"] { background: var(--green-soft); border-color: #acbf9a; }
+    .overview-item .micro { font-size: 9px; color: var(--subtle); }
+    .overview-item strong { display: block; font-weight: 500; font-size: 17px; line-height: 1.3; margin-top: 15px; letter-spacing: -.025em; }
+    .source-list { display: grid; gap: 0; }
+    .source-item { padding: 17px 0; border-top: 1px solid var(--line); }
+    .source-item a { font-size: 15px; }
+    .source-item p { font-size: 12px; color: var(--subtle); line-height: 1.7; margin-top: 7px; }
+    .shortcut-list { display: grid; grid-template-columns: 1fr 1fr; gap: 17px 25px; font-size: 13px; color: var(--subtle); }
+    .shortcut-list span { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); border-radius: 8px; padding: 13px 18px; color: #fff; background: var(--ink); font-size: 12px; box-shadow: 0 5px 25px #0002; z-index: 30; max-width: calc(100% - 30px); }
+    :fullscreen { background: var(--background, var(--surface)); }
+    @keyframes enter { from { transform: translateY(6px); } to { transform: translateY(0); } }
+    @keyframes breathe { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+    @media (min-width: 1450px) { .app { margin: 12px auto; } }
+    @media (max-width: 1000px) {
+      .slide { padding: 35px 35px 23px; }
+      .split { gap: 25px; }
+      .cover h1 { font-size: 62px; }
+      .topbar-right > .micro { display: none; }
+      .cover .lead { font-size: 15px; }
+      .history-detail { gap: 25px; }
+      .code-layout { grid-template-columns: .7fr 1.2fr; gap: 24px; }
+      .idea { padding: 0 16px; }
+    }
+    @media (max-width: 800px) {
+      .topbar { margin: 0 20px; min-height: 78px; }
+      .chapters { padding: 0 20px 16px; gap: 3px; }
+      .chapter { padding: 9px 11px; font-size: 11px; }
+      .chapter span { margin-right: 5px; }
+      .stage { margin: 0 12px; }
+      .slide { padding: 30px 28px 22px; min-height: 625px; }
+      .cover-grid { min-height: 478px; gap: 0; }
+      .cover h1 { font-size: 49px; }
+      .cover .lead { font-size: 14px; }
+      .cover-meta { font-size: 9px; gap: 8px; }
+      .cover .actions { gap: 5px; align-items: flex-start; flex-direction: column; }
+      .hero-caption { font-size: 8px; }
+      .split { grid-template-columns: 1fr; gap: 25px; }
+      .split > .intro .lead { max-width: 100%; }
+      .concept-list { grid-template-columns: 1fr 1fr; gap: 20px; }
+      .slide h2 { font-size: 42px; }
+      .lead { font-size: 15px; }
+      .chart { height: auto; }
+      .history-detail { grid-template-columns: .35fr 1fr; }
+      .history-detail > .callout { grid-column: 2; }
+      .history-number { font-size: 75px; }
+      .idea-grid { grid-template-columns: 1fr 1fr; gap: 30px 0; }
+      .idea:nth-child(3) { padding-left: 0; border-left: 0; }
+      .idea h3 { font-size: 22px; }
+      .lab { grid-template-columns: .85fr 1.2fr; gap: 16px; }
+      .lab .panel { padding: 16px; }
+      .lab-buttons { grid-template-columns: 1fr; }
+      .lab-buttons .button { min-height: 40px; }
+      .member-list { grid-template-columns: 1fr; }
+      .epoch-top strong { font-size: 29px; }
+      .epoch-top { flex-wrap: wrap; gap: 8px; }
+      .lifecycle { gap: 18px; grid-template-columns: .75fr 1.2fr; }
+      .step { font-size: 12px; padding: 12px; gap: 8px; }
+      .code-layout { grid-template-columns: 1fr; }
+      .code-description h3 { margin-top: 18px; }
+      .code-description .tabs { margin-bottom: 18px; }
+      .quiz-layout { grid-template-columns: 1fr; gap: 25px; }
+      .quiz-layout .lead { max-width: 100%; }
+      .quiz-layout .concept-list { display: none; }
+      .quiz-question { font-size: 23px; }
+      .footer { padding: 18px 22px 25px; }
+      .key-hints { gap: 12px; font-size: 10px; }
+      .key-hints .hint-notes { display: none; }
+      .notes { margin: 0 12px 20px; }
+    }
+    @media (max-width: 560px) {
+      .topbar { margin: 0 16px; gap: 8px; min-height: 72px; }
+      .brand { font-size: 12px; gap: 8px; }
+      .brand-mark { width: 29px; height: 29px; border-radius: 6px; }
+      .brand-slash { padding: 0 2px; }
+      .tools { gap: 0; }
+      .tool { width: 44px; height: 44px; }
+      .tools .fullscreen-tool { display: none; }
+      .chapters { padding: 0 12px 12px; }
+      .chapter { font-size: 10px; padding: 8px 10px; min-height: 40px; }
+      .chapter span { display: none; }
+      .stage { margin: 0 8px; border-radius: 12px; }
+      .slide { padding: 27px 22px 18px; min-height: 620px; }
+      .eyebrow { font-size: 9px; letter-spacing: .08em; margin-bottom: 20px; }
+      .cover-grid { grid-template-columns: 1fr; }
+      .cover h1 { font-size: 54px; max-width: 360px; }
+      .cover-meta { margin-bottom: 25px; font-size: 10px; }
+      .cover .lead { max-width: 400px; font-size: 15px; }
+      .cover .actions { flex-direction: row; align-items: center; gap: 17px; margin-top: 25px; }
+      .cover .actions .text-button { font-size: 11px; }
+      .hero-art { width: min(100%,370px); justify-self: center; margin-top: 15px; }
+      .hero-art svg { max-height: 310px; }
+      .hero-caption { font-size: 9px; margin-top: -10px; }
+      .slide h2 { font-size: 36px; margin-bottom: 16px; }
+      .lead { font-size: 14px; }
+      .slide-foot { margin-top: 24px; padding-top: 18px; font-size: 9px; }
+      .slide-foot > span:first-child { max-width: 80%; }
+      .concept-list { grid-template-columns: 1fr; }
+      .panel { padding: 18px; }
+      .tabs { width: 100%; flex-wrap: nowrap; }
+      .tab { flex: 1; padding: 10px 8px; font-size: 11px; }
+      .route { grid-template-columns: 1fr .2fr 1.25fr .2fr 1fr; gap: 2px; }
+      .device { width: 43px; height: 57px; }
+      .server { padding: 17px 6px; }
+      .server h3 { font-size: 11px; }
+      .server .tag { font-size: 8px; padding: 4px 6px; }
+      .payload { font-size: 9px; margin: 12px -6px; letter-spacing: -.3px; padding: 12px 3px; }
+      .route-message { font-size: 12px; }
+      .timeline-tabs { margin-top: 22px; }
+      .milestone .year { font-size: 21px; }
+      .milestone .name { font-size: 8px; }
+      .history-detail { grid-template-columns: 1fr; gap: 18px; margin-top: 28px; }
+      .history-number { display: none; }
+      .history-detail > .callout { grid-column: 1; }
+      .history-detail h3 { font-size: 26px; }
+      .history-detail p { font-size: 13px; }
+      .idea-grid { gap: 28px 0; }
+      .idea { padding: 0 12px; }
+      .idea h3 { font-size: 21px; }
+      .idea p { font-size: 12px; }
+      .idea .idea-icon { margin-bottom: 16px; }
+      .protocol-strip { font-size: 12px; padding: 16px; gap: 12px; }
+      .tree-panel { padding: 14px 6px; }
+      .tree-choices { grid-template-columns: repeat(4,1fr); gap: 4px; padding: 0 8px; }
+      .tree-choices button { font-size: 11px; }
+      .tree-reading { font-size: 14px; }
+      .tree-panel .legend { gap: 12px; padding: 0 8px; font-size: 9px; }
+      .lab { grid-template-columns: 1fr; gap: 24px; }
+      .lab-buttons { grid-template-columns: 1fr 1fr; }
+      .member-list { grid-template-columns: 1fr 1fr; }
+      .security-grid { grid-template-columns: 1fr; gap: 20px; }
+      .security-states { gap: 6px; }
+      .security-state { padding: 13px 10px; }
+      .security-state strong { font-size: 11px; }
+      .security-state span { font-size: 10px; }
+      .security-demo .actions { margin-top: 17px; gap: 8px; }
+      .security-demo .button { font-size: 11px; padding: 11px 12px; }
+      .lifecycle { grid-template-columns: 1fr; gap: 22px; }
+      .step-list { display: flex; gap: 4px; flex-wrap: wrap; }
+      .step { padding: 9px; font-size: 10px; flex: 1 1 auto; justify-content: center; }
+      .step .step-num { font-size: 9px; }
+      .lifecycle-detail { min-height: 295px; }
+      .lifecycle-detail h3 { font-size: 25px; }
+      pre { font-size: 10.5px; padding: 18px; }
+      .code-note { padding: 13px 18px; }
+      .architecture { gap: 6px; }
+      .architecture > .icon { width: 15px; flex-shrink: 1; }
+      .arch-box { padding: 18px 6px; }
+      .arch-box h3 { font-size: 11px; }
+      .arch-box .small { font-size: 9px; }
+      .responsibilities { grid-template-columns: 1fr; gap: 8px; }
+      .quiz-layout { margin-top: 25px; }
+      .quiz-question { font-size: 22px; }
+      .answer { padding: 12px; font-size: 12px; }
+      .closing { padding-top: 12px; }
+      .closing h2 { font-size: 43px; }
+      .closing .lead { font-size: 14px; }
+      .closing-links { grid-template-columns: 1fr; margin-top: 30px; gap: 20px; }
+      .footer { padding: 13px 17px 22px; }
+      .progress { gap: 4px; margin-bottom: 11px; }
+      .key-hints { display: none; }
+      .footer-row { justify-content: space-between; }
+      .mobile-help { display: inline-flex !important; }
+      .slide-controls { gap: 9px; }
+      .counter { min-width: 58px; font-size: 10px; }
+      dialog { padding: 20px; }
+      .dialog-heading h2 { font-size: 27px; }
+      .overview-grid { grid-template-columns: 1fr 1fr; gap: 9px; }
+      .overview-item { padding: 14px; min-height: 125px; }
+      .overview-item strong { font-size: 15px; }
+      .shortcut-list { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
+    @media print {
+      .topbar, .chapters, .footer, .notes, dialog, .actions { display: none !important; }
+      .stage { border: 0; margin: 0; }
+      .slide { min-height: 0; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#slide-title">Skip to the slide</a>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" id="brand-icon" aria-hidden="true"></span><span>MLS <span class="brand-slash">/</span> EXPLAINED</span></div>
+      <div class="topbar-right">
+        <span class="micro muted">An interactive field guide</span>
+        <div class="tools" aria-label="Presentation tools">
+          <button class="tool" data-action="sources" aria-label="Open references" title="References (R)"></button>
+          <button class="tool" data-action="notes" aria-label="Toggle speaker notes" aria-pressed="false" title="Speaker notes (N)"></button>
+          <button class="tool" data-action="overview" aria-label="Open slide overview" title="Slide overview (O)"></button>
+          <button class="tool fullscreen-tool" data-action="fullscreen" aria-label="Enter fullscreen" title="Fullscreen (F)"></button>
+        </div>
+      </div>
+    </header>
+    <nav class="chapters" aria-label="Presentation chapters" id="chapters"></nav>
+    <main class="stage" id="stage" aria-label="Presentation slide"></main>
+    <footer class="footer">
+      <nav class="progress" aria-label="Go to a slide" id="progress"></nav>
+      <div class="footer-row">
+        <div class="key-hints"><span><kbd>←</kbd><kbd>→</kbd> navigate</span><span><kbd>O</kbd> overview</span><span class="hint-notes"><kbd>N</kbd> speaker notes</span><button class="text-button" data-action="help" aria-label="Keyboard shortcuts">?</button></div>
+        <button class="text-button mobile-help" data-action="help" hidden aria-label="Open presentation help">How to navigate</button>
+        <div class="slide-controls"><span class="counter" id="counter"></span><button class="nav-button" data-action="prev" aria-label="Previous slide"></button><button class="nav-button next" data-action="next" aria-label="Next slide"></button></div>
+      </div>
+    </footer>
+    <aside class="notes" id="notes" aria-label="Speaker notes" hidden></aside>
+  </div>
+  <dialog id="modal" aria-labelledby="dialog-title"></dialog>
+  <div class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <noscript><p style="padding:24px">This interactive presentation needs JavaScript. Enable JavaScript and reopen this file. Read the protocol at <a href="https://www.rfc-editor.org/rfc/rfc9420.html">RFC 9420</a>.</p></noscript>
+  <script>
+    'use strict';
+    const icons = {
+      tree: '<path d="M12 3v6M4 15v-4h16v4M12 9v6"/><rect x="9" y="2" width="6" height="4" rx="1"/><rect x="1" y="15" width="6" height="5" rx="1"/><rect x="9" y="15" width="6" height="5" rx="1"/><rect x="17" y="15" width="6" height="5" rx="1"/>',
+      arrow: '<path d="M5 12h14m-5-5 5 5-5 5"/>',
+      back: '<path d="M19 12H5m5-5-5 5 5 5"/>',
+      lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>',
+      unlock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.5-2m-3.5 10v2"/>',
+      book: '<path d="M12 5C8 2 3 3 2 4v15c3-2 7-2 10 0 3-2 7-2 10 0V4c-3-2-7-2-10 1Zm0 0v14"/>',
+      notes: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+      grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+      fullscreen: '<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
+      close: '<path d="m6 6 12 12M6 18 18 6"/>',
+      shield: '<path d="m12 2 8 3v6c0 5-8 11-8 11S4 16 4 11V5Z"/><path d="m8 11 3 3 5-6"/>',
+      key: '<circle cx="8" cy="9" r="5"/><path d="m12 13 8 8m-4-4 3-3m-6 0 3-3"/>',
+      users: '<circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 4v3"/>',
+      server: '<rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M11 6.5h6M11 17.5h6"/>',
+      device: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4"/>',
+      clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+      check: '<path d="m5 12 4 4L19 6"/>',
+      external: '<path d="M14 3h7v7m0-7L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/>',
+      refresh: '<path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7a7 7 0 0 1 11.5-2L20 8M4 16l2.4 3a7 7 0 0 0 11.5-2"/>',
+      message: '<path d="M21 11a9 9 0 0 1-9 9 10 10 0 0 1-4-.9L2 21l1.9-6A9 9 0 1 1 21 11Z"/><path d="M7 10h10M7 14h6"/>',
+      plus: '<path d="M12 5v14M5 12h14"/>',
+      minus: '<path d="M5 12h14"/>'
+    };
+    const icon = (name) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.lock}</svg>`;
+    const escapeHTML = (text) => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const external = (url, label) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    const sourceURLs = {
+      protocol: 'https://www.rfc-editor.org/rfc/rfc9420.html',
+      architecture: 'https://www.rfc-editor.org/rfc/rfc9750.html',
+      openmls: 'https://book.openmls.tech/',
+      pgp: 'https://philzimmermann.com/EN/essays/WhyIWrotePGP.html',
+      otr: 'https://otr.cypherpunks.ca/index.php',
+      signal: 'https://signal.org/docs/specifications/doubleratchet/',
+      announcement: 'https://www.ietf.org/blog/mls-protocol-published/',
+      packages: 'https://book.openmls.tech/user_manual/create_key_package.html',
+      add: 'https://book.openmls.tech/user_manual/add_members.html',
+      join: 'https://book.openmls.tech/user_manual/join_from_welcome.html',
+      messages: 'https://book.openmls.tech/user_manual/application_messages.html',
+      processing: 'https://book.openmls.tech/user_manual/processing.html'
+    };
+    const chapters = ['Why E2EE', 'A little history', 'Inside MLS', 'Building with MLS'];
+    const chapterStarts = [0, 2, 4, 9];
+    const state = {
+      slide: 0, notes: false, transport: 'tls', milestone: 0, groupPower: 6,
+      treeMember: 0, security: 'safe', lifecycle: 0, codeTab: 0,
+      quizQuestion: 0, quizAnswers: [], quizComplete: false,
+      lab: freshLab()
+    };
+    function freshLab() {
+      return { epoch: 0, pending: null, chenOnline: true, members: [
+        { name: 'Alice', known: 0, joined: 0, active: true },
+        { name: 'Bob', known: 0, joined: 0, active: true },
+        { name: 'Chen', known: 0, joined: 0, active: true }
+      ], events: ['The group starts with Alice, Bob, and Chen in epoch 0.'] };
+    }
+    const milestones = [
+      { year: '1991', short: 'PGP', title: 'Private mail goes public.', text: 'Pretty Good Privacy put public-key encryption into people’s hands. A sender could encrypt mail for a recipient without first sharing a secret password.', lesson: 'The next challenge: make private, ongoing conversations convenient, with protection when long-term keys leak.', url: sourceURLs.pgp, label: 'Zimmermann’s original account' },
+      { year: '2004', short: 'OTR', title: 'Conversations get short-lived keys.', text: 'Off-the-Record Messaging brought forward secrecy and deniable authentication to live, one-to-one chat.', lesson: 'The next challenge: keep conversations secure when people and devices are not online together.', url: sourceURLs.otr, label: 'OTR project and 2004 paper' },
+      { year: '2010s', short: 'Ratchets', title: 'Keys evolve as people talk.', text: 'Signal’s Double Ratchet combines a per-message symmetric ratchet with fresh Diffie–Hellman inputs. It gives two-party messaging forward secrecy and recovery after some compromises.', lesson: 'The next challenge: efficiently refresh keys for a whole group as membership changes.', url: sourceURLs.signal, label: 'The Double Ratchet specification' },
+      { year: '2023', short: 'MLS', title: 'Group key agreement becomes a standard.', text: 'The IETF published MLS as RFC 9420 in July 2023. Tree-based key agreement lets changing groups establish fresh shared state without everyone being online.', lesson: 'The shift: design authenticated, asynchronous key agreement for groups from the start.', url: sourceURLs.announcement, label: 'IETF publication announcement' },
+      { year: '2025', short: 'Architecture', title: 'The surrounding system gets a guide.', text: 'RFC 9750, published in April 2025, describes the architecture around MLS: clients, authentication, delivery, and the decisions an application still makes.', lesson: 'The next step: combine the cryptographic protocol with a reliable, well-designed application.', url: sourceURLs.architecture, label: 'RFC 9750, MLS Architecture' }
+    ];
+    const lifecycleSteps = [
+      { label:'Publish', title:'A device publishes a KeyPackage.', from:'Dana’s device', to:'KeyPackage directory', payload:'Signed public keys + credential + capabilities', text:'Dana keeps the matching private keys on her device. An existing member can fetch this signed package to invite her while she is offline.', note:'Authenticate the credential’s binding to Dana. A self-signed identity label alone proves no real-world identity.', source:'packages' },
+      { label:'Propose', title:'A member proposes a change.', from:'Alice', to:'Existing members', payload:'Add(Dana’s KeyPackage)', text:'An Add proposal describes a possible membership change. Proposals can travel separately or be included directly inside a Commit.', note:'A proposal by itself does not change the group’s epoch or membership.', source:'protocol' },
+      { label:'Commit', title:'A Commit advances the group.', from:'Alice', to:'Existing members', payload:'Commit + fresh group state for epoch e + 1', text:'Existing members validate and process the accepted Commit. It applies the selected proposals and advances the cryptographic state.', note:'Your delivery design must resolve concurrent commits into a consistent accepted order.', source:'processing' },
+      { label:'Welcome', title:'Dana joins the new epoch.', from:'Inviting member', to:'Dana’s device', payload:'Welcome encrypted for Dana’s KeyPackage', text:'Dana processes the Welcome and validates the group and credentials. She obtains state for the epoch in which she joined.', note:'Deliver the Welcome after its Commit is accepted. Earlier message history needs a separate application policy.', source:'join' },
+      { label:'Message', title:'Members exchange protected messages.', from:'A member’s device', to:'Other member devices', payload:'Application ciphertext, relayed by the delivery service', text:'MLS derives sender-specific message keys from the epoch’s secret tree. Devices protect and authenticate content locally, while a service routes the resulting ciphertext.', note:'A new application message uses a new message key. Sending a message alone does not advance the group epoch.', source:'messages' }
+    ];
+    const codeExamples = [
+      { label:'Add', title:'Add a device with OpenMLS.', description:'Use a maintained protocol implementation. This Rust excerpt assumes an existing group, provider, signer, and a validated KeyPackage for Bob.', code:`let (commit, welcome, _info) = group\n    .add_members(\n        provider,\n        &signer,\n        &[bob_key_package],\n    )?;\n\n// Distribute the accepted Commit to members.\n// Merge locally after delivery accepts it.\ngroup.merge_pending_commit(provider)?;\n\n// Then deliver Welcome to Bob.`, note:'Delivery, serialization, credentials, and persistence are application code. This is an excerpt, not a standalone Rust program.', source:'add' },
+      { label:'Join', title:'Join from a Welcome.', description:'Bob uses his device’s stored private keys to open the Welcome. The example assumes the ratchet tree extension is available in the Welcome.', code:`let staged = StagedWelcome::new_from_welcome(\n    provider,\n    &join_config,\n    welcome,\n    None,\n)?;\n\n// Validate the inviter and member credentials.\n// Check your app’s authorization policy.\nlet mut group = staged.into_group(provider)?;`, note:'Without the ratchet tree extension, supply the authenticated ratchet tree rather than None. Only join after the related Commit is accepted.', source:'join' },
+      { label:'Send', title:'Protect application content.', description:'The client encrypts content before it leaves the device. Send the serialized MLS message through your delivery service.', code:`let message = group.create_message(\n    provider,\n    &signer,\n    b"Coffee at 10?",\n)?;\n\n// Serialize and route the MLS ciphertext.\n// Persist changed local state securely.\n// Keep plaintext locally only by app policy.`, note:'The sender’s encryption key is discarded after use. The application must retain a plaintext copy if it wants to display sent history.', source:'messages' },
+      { label:'Receive', title:'Process, validate, then apply.', description:'Deserialize incoming bytes and pass the protocol message to the matching group. Treat application messages, proposals, and commits differently.', code:`let message = MlsMessageIn\n    ::tls_deserialize_exact(&bytes)?;\n\nlet processed = group.process_message(\n    provider,\n    message.try_into_protocol_message()?,\n)?;\n\n// Dispatch processed.into_content():\n// ApplicationMessage: display the content.\n// ProposalMessage: validate policy and store.\n// StagedCommitMessage: validate and merge.`, note:'Reject malformed or unauthenticated input. Check membership policy before merging a staged commit. Handle missing epochs and replay safely.', source:'processing' }
+    ];
+    const quizQuestions = [
+      { question:'Alice proposes removing Bob. When does Bob lose access to new group secrets?', options:['As soon as Alice sends the proposal.','After an accepted Commit removes Bob and the group advances.','Only when Bob deletes the application.'], correct:1, feedback:'A proposal describes a change. The accepted Commit applies it and advances the epoch. Bob can still retain content he already learned.' },
+      { question:'Dana joins the group in epoch 8. What does MLS give her automatically?', options:['The entire conversation, including earlier epochs.','A copy of every member’s private signing key.','The group state for the epoch she joins.'], correct:2, feedback:'A Welcome initializes Dana’s state for her joining epoch. Earlier history requires a separate sharing mechanism and an explicit application policy.' },
+      { question:'The delivery service sees MLS traffic. What should we assume?', options:['It can route ciphertext and may observe metadata.','It has the application plaintext so it can route messages.','It cannot delay or drop messages.'], correct:0, feedback:'MLS protects content, but routing metadata and availability need separate attention. A delivery service can still delay or withhold traffic.' }
+    ];
+
+    const slides = [
+      { chapter:0, title:'Privacy is a group effort.', kicker:'Why end-to-end encryption', source:'architecture', sourceLabel:'Based on RFC 9750 and RFC 9420', notes:'Open with a simple question: should the company delivering your conversation need access to its words? E2EE moves content protection to participants’ devices. Explain that this is a developer-oriented introduction, with conceptual demonstrations rather than real cryptography. The path is why E2EE, a short history, MLS mechanics, and integration.', render:coverSlide },
+      { chapter:0, title:'Who holds the keys?', kicker:'01 / The reason for E2EE', source:'architecture', sourceLabel:'RFC 9750, Introduction and Security Goals', notes:'Select Transport encryption first, then End-to-end encryption. In a common client-server messaging design, TLS protects each connection but the server processes plaintext. E2EE protects the content across that server boundary. TLS remains useful underneath E2EE. Authentication and secure endpoints are assumptions. Avoid suggesting that E2EE hides all metadata.', render:transportSlide },
+      { chapter:1, title:'From private mail to private groups.', kicker:'02 / A little history', source:'announcement', sourceLabel:'Primary historical sources in each milestone', notes:'Walk from PGP through OTR and the Double Ratchet before selecting MLS. These are selected milestones in messaging security, not a strict replacement chain. OTR’s 2004 publication is linked from its project page. The Double Ratchet milestone uses a decade rather than claiming an exact invention date. RFC 9420 dates to July 2023 and RFC 9750 to April 2025.', render:historySlide },
+      { chapter:1, title:'Groups change. Key distribution gets harder.', kicker:'02 / The group problem', source:'protocol', sourceLabel:'RFC 9420 §1; idealized update model', notes:'Move the group size slider. The chart compares n−1 separate recipient envelopes with log2(n) copath envelopes in an ideal full binary ratchet tree, for powers of two only. This is a teaching model, not a benchmark or a bound on every MLS Commit. Blank nodes, resolution size, proposals, public-tree data, and fanout all affect practical costs. Sender-key schemes are more efficient for application messages than naive pairwise fanout, but recovery is a separate challenge.', render:scaleSlide },
+      { chapter:2, title:'Four ideas behind MLS.', kicker:'03 / Inside the protocol', source:'protocol', sourceLabel:'RFC 9420 §§5, 7, 8, 10, 12', notes:'Expand MLS as Messaging Layer Security. A KeyPackage is signed public invitation material, not a private key. TreeKEM handles group key agreement. Commits advance epochs. A separate secret tree derives per-sender, per-message keys. These two trees have different jobs. Devices are the unit of membership, so one human can occupy several leaves.', render:ideasSlide },
+      { chapter:2, title:'One update travels up the tree.', kicker:'03 / The ratchet tree', source:'protocol', sourceLabel:'RFC 9420 §§4, 7, 12; simplified full tree', notes:'Click Alice, then Hana. Orange marks the updating leaf and direct path to the root. Green outlines mark copath subtrees: fresh path secrets are encrypted to their resolutions so other members can compute the new common state. The example is a full, balanced tree with eight clients. Everyone has the public tree, but each member only holds private key material for its own path. The ratchet tree is separate from the secret tree used for application messages.', render:treeSlide },
+      { chapter:2, title:'A group changes. Its keys change with it.', kicker:'03 / Try the epoch lab', source:'protocol', sourceLabel:'RFC 9420 §§12–14; conceptual simulation', notes:'First propose adding Dana and point out that nothing happens to the active membership until Commit. Commit and note the Welcome. Take Chen offline, commit an update, reconnect Chen, and catch up the missing commits. Send a message before and after catch-up. Finally remove Bob. Bob loses access to new epochs but retains old content he already knew. This simulator assumes one accepted commit sequence and immediate delivery to online clients. It does not implement MLS cryptography.', render:labSlide },
+      { chapter:2, title:'Protect the past. Recover the future.', kicker:'03 / Security over time', source:'architecture', sourceLabel:'RFC 9750 Security Goals; RFC 9420 §17', notes:'Forward secrecy depends on deleting obsolete secret state. It does not erase stored plaintext or copies. The compromise illustration assumes just Alice’s device is compromised. To demonstrate post-compromise recovery, the attacker must lose endpoint access and Alice’s recovered client must contribute a fresh update that the group accepts. A passive per-message hash ratchet alone does not heal a compromised group. Other compromised clients would need appropriate recovery too.', render:securitySlide },
+      { chapter:2, title:'The life of a private group.', kicker:'03 / From invitation to conversation', source:'protocol', sourceLabel:'RFC 9420; linked OpenMLS operation guides', notes:'Use the stepper to narrate the protocol flow. Proposals can be sent separately or embedded in a Commit. Existing members process the Commit, while the new device initializes from Welcome. Newcomers do not automatically get old messages. Application messages use sender-specific message keys and do not themselves advance epochs. A group needs one consistent accepted sequence of commits.', render:lifecycleSlide },
+      { chapter:3, title:'Use a library. Build the experience.', kicker:'04 / MLS in application code', source:'openmls', sourceLabel:'OpenMLS Book; API excerpts checked November 2026', notes:'OpenMLS is one implementation, in Rust. Tabs show API excerpts mapped to its official book, with setup and transport intentionally omitted. These are not compiled examples and the presentation is not an MLS client. Use the complete linked examples and pin an appropriate dependency version when integrating. Explain that credentials need an external trust binding, providers need persistent storage, and the delivery protocol must establish which Commit was accepted before local merge and Welcome delivery.', render:codeSlide },
+      { chapter:3, title:'MLS is one part of your application.', kicker:'04 / The integration boundary', source:'architecture', sourceLabel:'RFC 9750 §§2–5; OpenMLS credential and delivery guidance', notes:'The Authentication Service binds an account or device identity to signing keys, according to your trust model. Endpoints perform MLS operations and retain private state. The Delivery Service routes messages and helps produce an accepted Commit order. Open each responsibility. MLS does not supply an application login system, admin policy, traffic anonymity, a backup design, or availability. Multi-device accounts need explicit per-device membership and revocation.', render:integrationSlide },
+      { chapter:3, title:'Three quick checks.', kicker:'04 / Test your mental model', source:'protocol', sourceLabel:'Answers grounded in RFC 9420 and RFC 9750', notes:'Ask the audience to vote before selecting each answer. The three distinctions are proposal versus commit, joining state versus historical messages, and content confidentiality versus metadata and availability. Wrong answers show the correct explanation immediately. The quiz is entirely local and does not collect responses.', render:quizSlide },
+      { chapter:3, title:'Private by design. Built for the group.', kicker:'The takeaway', source:'protocol', sourceLabel:'MLS protocol: RFC 9420, July 2023 · Architecture: RFC 9750, April 2025', notes:'Recap: E2EE keeps content keys at endpoints. MLS gives changing groups authenticated, evolving cryptographic state. Applications still own identity, delivery, local storage, and user experience. Point to the protocol, architecture, and OpenMLS book for the next level of detail. Reopen the lab for questions if useful.', render:closingSlide }
+    ];
+
+    function coverSlide() {
+      return `<div class="cover-grid"><div class="cover-copy"><div class="cover-meta"><span class="tag">MLS / RFC 9420</span><span>13 slides · ~15 minutes</span></div><div class="eyebrow">Why end-to-end encryption</div><h1 id="slide-title" tabindex="-1">Privacy is a <br><span class="serif">group effort.</span></h1><p class="lead">Our conversations keep growing. Their privacy should keep up.<br><br>A hands-on introduction to Messaging Layer Security.</p><div class="actions"><button class="button" data-action="next">Let’s start ${icon('arrow')}</button><button class="text-button" data-action="go" data-value="5">Explore the key tree ${icon('arrow')}</button></div></div><div class="hero-art">${heroArt()}<div class="hero-caption"><span class="status-dot"></span>SHARED SECRETS. CHANGING MEMBERS.</div></div></div>`;
+    }
+    function heroArt() {
+      return `<svg viewBox="0 0 520 465" role="img" aria-labelledby="hero-title hero-desc"><title id="hero-title">An encrypted conversation shared by a group</title><desc id="hero-desc">Five member devices surround a central lock. Dotted connections carry encrypted content between the endpoints.</desc><defs><pattern id="dots" x="0" y="0" width="17" height="17" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".65" fill="#cbd2c0"/></pattern></defs><rect x="20" y="15" width="480" height="410" fill="url(#dots)"/><circle cx="260" cy="235" r="170" fill="none" stroke="#d9dece"/><circle class="hero-orbit" cx="260" cy="235" r="124" fill="none" stroke="#a6b999" stroke-dasharray="3 7"/><g stroke="#a5b294" stroke-width="1.2" stroke-dasharray="4 5"><path d="M260 235 260 65M260 235 420 184M260 235 359 371M260 235 160 371M260 235 99 184"/></g><circle cx="260" cy="235" r="78" fill="#e9ecdd" stroke="#cdd5bc"/><circle cx="260" cy="235" r="58" fill="#ad3c20"/><g transform="translate(235 208)" fill="none" stroke="#fff3df" stroke-width="2.3" stroke-linecap="round"><rect x="8" y="22" width="34" height="27" rx="5"/><path d="M15 22V12a10 10 0 0 1 20 0v10M25 33v6"/></g><g font-family="Helvetica Neue,Arial,sans-serif" text-anchor="middle"><g><circle cx="260" cy="65" r="29" fill="#e2e9d6" stroke="#9eaf8c"/><text x="260" y="72" font-size="20" fill="#325b43">A</text><text x="260" y="17" font-size="10" fill="#5f665e">ALICE</text></g><g><circle cx="420" cy="184" r="29" fill="#edf0e4" stroke="#aab79b"/><text x="420" y="191" font-size="20" fill="#325b43">B</text><text x="420" y="235" font-size="10" fill="#5f665e">BOB</text></g><g><circle cx="359" cy="371" r="29" fill="#e2e9d6" stroke="#9eaf8c"/><text x="359" y="378" font-size="20" fill="#325b43">C</text><text x="359" y="422" font-size="10" fill="#5f665e">CHEN</text></g><g><circle cx="160" cy="371" r="29" fill="#edf0e4" stroke="#aab79b"/><text x="160" y="378" font-size="20" fill="#325b43">D</text><text x="160" y="422" font-size="10" fill="#5f665e">DANA</text></g><g><circle cx="99" cy="184" r="29" fill="#e2e9d6" stroke="#9eaf8c"/><text x="99" y="191" font-size="20" fill="#325b43">E</text><text x="99" y="235" font-size="10" fill="#5f665e">ELI</text></g></g><g transform="translate(302 104) rotate(9)"><rect width="150" height="48" rx="9" fill="#fff" stroke="#d5dacb"/><path d="m17 16 4 4 7-8" fill="none" stroke="#325b43" stroke-width="1.5"/><text x="40" y="23" fill="#325b43" font-family="monospace" font-size="11">c42b 8f1a 9e03</text><text x="40" y="36" fill="#5f665e" font-family="monospace" font-size="7">ENCRYPTED CONTENT</text></g><g transform="translate(44 279) rotate(-7)"><rect width="157" height="53" rx="9" fill="#fff" stroke="#d5dacb"/><text x="16" y="22" fill="#272c28" font-family="Helvetica Neue,Arial,sans-serif" font-size="12">Coffee at 10?</text><text x="16" y="38" fill="#5f665e" font-family="monospace" font-size="7">ONLY ON MEMBER DEVICES</text></g></svg>`;
+    }
+    function heading() { const s=slides[state.slide]; return `<div class="eyebrow">${s.kicker}</div><h2 id="slide-title" tabindex="-1">${s.title}</h2>`; }
+    function concept(name, title, text) { return `<div class="concept">${icon(name)}<div><strong>${title}</strong><p>${text}</p></div></div>`; }
+    function transportSlide() {
+      const e2ee=state.transport==='e2ee';
+      return `${heading()}<div class="split top"><div class="intro"><p class="lead">Encryption protects a message from the people who don’t have its keys. The key question is who does.</p><div class="concept-list">${concept('server','Transport encryption','TLS secures the connection to the service. The service can still handle plaintext.')}${concept('lock','End-to-end encryption','Member devices hold the content keys. The delivery service relays ciphertext.')}</div><div class="callout">E2EE applications still use TLS. The two protect different boundaries.</div></div><div class="panel"><div class="tabs" role="tablist" aria-label="Encryption model"><button id="tls-tab" class="tab" role="tab" aria-selected="${!e2ee}" aria-controls="transport-panel" tabindex="${!e2ee?0:-1}" data-action="transport" data-value="tls">Transport / TLS</button><button id="e2ee-tab" class="tab" role="tab" aria-selected="${e2ee}" aria-controls="transport-panel" tabindex="${e2ee?0:-1}" data-action="transport" data-value="e2ee">End-to-end / E2EE</button></div><div id="transport-panel" class="transport" role="tabpanel" aria-labelledby="${e2ee?'e2ee':'tls'}-tab"><div class="route"><div class="endpoint"><div class="device">${icon('device')}</div><strong>Alice</strong><span>“Coffee at 10?”</span></div><div class="wire">${icon('lock')}</div><div class="server">${icon('server')}<h3>Delivery service</h3><div class="payload ${e2ee?'encrypted':''}">${e2ee?'c42b 8f1a 9e03':'Coffee at 10?'}</div><span class="tag ${e2ee?'green':'orange'}">${e2ee?'Sees ciphertext':'Can read content'}</span></div><div class="wire">${icon('lock')}</div><div class="endpoint"><div class="device">${icon('device')}</div><strong>Bob</strong><span>“Coffee at 10?”</span></div></div><p class="route-message">${e2ee?'Alice encrypts on her device. Bob decrypts on his. The service delivers the message without holding the content keys.':'Each TLS connection ends at the service. In this common design, the service can read the message before sending it to Bob.'}</p><p class="small">Conceptual illustration. Content confidentiality assumes authenticated keys and uncompromised endpoints.</p></div></div></div>`;
+    }
+    function historySlide() {
+      const m=milestones[state.milestone];
+      return `${heading()}<p class="lead">The ambition stayed the same. The key management kept evolving.</p><div class="timeline-tabs" role="tablist" aria-label="Encryption milestones">${milestones.map((x,i)=>`<button class="milestone" id="history-tab-${i}" role="tab" aria-selected="${i===state.milestone}" aria-controls="history-detail" tabindex="${i===state.milestone?0:-1}" data-action="milestone" data-value="${i}"><span class="year">${x.year}</span><span class="name">${x.short}</span></button>`).join('')}</div><div class="history-detail" id="history-detail" role="tabpanel" aria-labelledby="history-tab-${state.milestone}"><div class="history-number" aria-hidden="true">${String(state.milestone+1).padStart(2,'0')}</div><div><h3>${m.title}</h3><p>${m.text}</p><p class="small" style="margin-top:14px">${external(m.url,m.label)}</p></div><div class="callout">${m.lesson}</div></div><p class="small" style="margin-top:18px">Select a milestone to explore. These are parallel lines of research, with different goals and trade-offs.</p>`;
+    }
+    function scaleSlide() {
+      const n=2**state.groupPower;
+      return `${heading()}<div class="split"><div><p class="lead">Adding people is only half the problem. Keys also need to change when a device refreshes its secrets or a member leaves.</p><div class="group-control" style="margin-top:25px"><div><span class="subhead">Group size</span><output class="big-number" id="group-size" for="group-range">${n.toLocaleString()}</output></div><label for="group-range">member devices</label></div><input type="range" id="group-range" min="1" max="10" step="1" value="${state.groupPower}" aria-label="Group size, in powers of two" aria-valuetext="${n} member devices"><div class="range-labels"><span>2 devices</span><span>1,024 devices</span></div><div class="comparisons" id="scale-counts">${scaleCounts()}</div></div><figure class="panel white-panel"><div class="subhead">Illustrative encrypted envelopes per refresh</div><div id="scale-chart">${scaleChart()}</div><div class="legend"><span><i class="swatch"></i>Separate recipient envelopes</span><span><i class="swatch green"></i>Ideal binary-tree envelopes</span></div><figcaption class="small" style="margin-top:15px">A full, balanced tree gives a logarithmic update path. This model counts envelopes, not bytes, total delivery traffic, or measured speed.</figcaption></figure></div><div class="callout">Real MLS costs depend on tree shape, blank nodes, and Commit contents. The service still delivers the update to the group.</div>`;
+    }
+    function scaleCounts() { const n=2**state.groupPower; return `<div class="comparison"><span>Separate recipients · n − 1</span><strong>${(n-1).toLocaleString()}</strong></div><div class="comparison tree"><span>Ideal tree · log₂(n)</span><strong>${state.groupPower}</strong></div>`; }
+    function scaleChart() {
+      const w=500,h=245,left=45,right=480,top=22,bottom=207;
+      const x=(p)=>left+(p-1)/9*(right-left), y=(v)=>bottom-v/1024*(bottom-top);
+      const direct=Array.from({length:10},(_,i)=>`${x(i+1)},${y(2**(i+1)-1)}`).join(' ');
+      const tree=Array.from({length:10},(_,i)=>`${x(i+1)},${y(i+1)}`).join(' ');
+      return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Ideal update model. For ${2**state.groupPower} devices, separate encryption uses ${2**state.groupPower-1} envelopes, versus ${state.groupPower} in a full binary tree.">${[0,256,512,768,1024].map(v=>`<line x1="${left}" y1="${y(v)}" x2="${right}" y2="${y(v)}" stroke="#e0e3d7"/><text x="${left-9}" y="${y(v)+4}" text-anchor="end" fill="#5f665e" font-family="monospace" font-size="10">${v}</text>`).join('')}<polyline points="${direct}" fill="none" stroke="#ad3c20" stroke-width="2.5"/><polyline points="${tree}" fill="none" stroke="#325b43" stroke-width="3"/><line x1="${x(state.groupPower)}" y1="${top}" x2="${x(state.groupPower)}" y2="${bottom}" stroke="#8c9981" stroke-dasharray="3 5"/><circle cx="${x(state.groupPower)}" cy="${y(2**state.groupPower-1)}" r="5" fill="#ad3c20" stroke="#fff" stroke-width="2"/><circle cx="${x(state.groupPower)}" cy="${y(state.groupPower)}" r="5" fill="#325b43" stroke="#fff" stroke-width="2"/>${[1,4,7,10].map(p=>`<text x="${x(p)}" y="231" text-anchor="middle" fill="#5f665e" font-family="monospace" font-size="10">${(2**p).toLocaleString()}</text>`).join('')}<text x="${right}" y="13" text-anchor="end" fill="#5f665e" font-family="monospace" font-size="9">MEMBER DEVICES (LOG SPACING)</text></svg>`;
+    }
+    function ideasSlide() {
+      const ideas=[['key','01 / Invitation','KeyPackage','A device publishes signed public key material so another member can invite it while it is offline.'],['tree','02 / Agreement','TreeKEM','A ratchet tree lets members introduce fresh group secrets through an efficient update path.'],['clock','03 / Group state','Epoch','An accepted Commit advances the group to its next state, applying membership or key changes.'],['message','04 / Messages','Secret tree','Each epoch feeds a separate tree of per-sender ratchets, which derive individual message keys.']];
+      return `${heading()}<p class="lead">Messaging Layer Security coordinates authenticated devices and evolving keys for an asynchronous group.</p><div class="idea-grid">${ideas.map(([i,k,t,d])=>`<div class="idea"><div class="idea-icon">${icon(i)}</div><div class="micro muted" style="font-size:9px">${k}</div><h3>${t}</h3><p>${d}</p></div>`).join('')}</div><div class="protocol-strip">${icon('users')}<span>A member is a <strong>client device</strong>. Your phone and laptop can occupy separate leaves in the same group.</span></div>`;
+    }
+    const treeNames=['Alice','Bob','Chen','Dana','Eli','Fran','Gus','Hana'];
+    function treeSlide() {
+      return `${heading()}<div class="split top"><div><p class="lead">Each device sits at a leaf. It holds private key material along its own path to the root.</p><div class="tree-reading" id="tree-reading">${treeReading()}</div><div class="callout">This ratchet tree establishes group secrets. A separate <strong>secret tree</strong> produces application message keys.</div><p class="small" style="margin-top:18px">Select any member to trace its update.</p></div><figure class="panel tree-panel"><div class="subhead" style="padding-left:8px">Eight devices / a full binary tree</div><div id="tree-diagram">${treeDiagram()}</div><div class="tree-choices" aria-label="Choose a device to update">${treeNames.map((n,i)=>`<button aria-pressed="${i===state.treeMember}" data-action="tree-member" data-value="${i}">${n}</button>`).join('')}</div><figcaption class="legend"><span><i class="swatch"></i>Fresh direct path</span><span><i class="swatch green"></i>Sibling subtrees</span><span><i class="swatch gray"></i>Public tree</span></figcaption></figure></div>`;
+    }
+    function treeReading() { return `<strong>${treeNames[state.treeMember]}</strong> refreshes its leaf and <strong>3 ancestor nodes</strong>. The update encrypts fresh path secrets for the sibling subtrees, so the other members can derive the next shared state.`; }
+    function treeDiagram() {
+      const nodes=Array.from({length:15},(_,i)=>{ const level=Math.floor(Math.log2(i+1)), j=i-(2**level-1); return {x:(j+.5)*800/2**level,y:35+level*82}; });
+      const path=new Set(); let cur=7+state.treeMember; while(cur>=0){path.add(cur); if(cur===0)break; cur=Math.floor((cur-1)/2);}
+      const siblings=new Set(); for(const i of path)if(i>0)siblings.add(i%2===1?i+1:i-1);
+      const lines=nodes.slice(1).map((n,j)=>{const i=j+1,p=nodes[Math.floor((i-1)/2)];return `<path d="M${p.x} ${p.y+12}V${p.y+29}H${n.x}V${n.y-13}" fill="none" stroke="${path.has(i)?'#ad3c20':'#c8d0bb'}" stroke-width="${path.has(i)?3:1.5}"/>`;}).join('');
+      const circles=nodes.map((n,i)=>`<circle cx="${n.x}" cy="${n.y}" r="${i>=7?17:14}" fill="${path.has(i)?'#ad3c20':siblings.has(i)?'#e1ead4':'#f7f7f2'}" stroke="${path.has(i)?'#ad3c20':siblings.has(i)?'#325b43':'#bbc5ab'}" stroke-width="${siblings.has(i)?2.5:1.5}"/>${i>=7?`<text x="${n.x}" y="${n.y+5}" text-anchor="middle" fill="${path.has(i)?'#fff':'#325b43'}" font-family="monospace" font-size="14">${treeNames[i-7][0]}</text>`:''}`).join('');
+      return `<svg class="tree-svg" viewBox="0 0 800 307" role="img" aria-label="${treeNames[state.treeMember]}'s update highlights its leaf and three ancestors in orange, with sibling subtrees outlined in green.">${lines}${circles}<text x="435" y="39" fill="#5f665e" font-family="monospace" font-size="11">ROOT</text></svg>`;
+    }
+    function labSlide() { return `${heading()}<p class="lead">Propose a change. Commit it. Watch who shares the next epoch.</p><div id="lab-content">${labContent()}</div><p class="small" style="margin-top:18px">Conceptual simulation, with one accepted Commit sequence. No real keys or cryptography. New members do not automatically get earlier history.</p>`; }
+    function labContent() {
+      const l=state.lab, active=l.members.filter(m=>m.active), bob=l.members.find(m=>m.name==='Bob'), dana=l.members.find(m=>m.name==='Dana'), chen=l.members.find(m=>m.name==='Chen');
+      const pendingText=l.pending==='add'?'Add Dana using her KeyPackage':l.pending==='remove'?'Remove Bob from the group':l.pending==='update'?'Refresh Alice’s leaf and path':'No change proposed yet';
+      return `<div class="lab"><div><div class="subhead">1 / Choose an operation</div><div class="lab-buttons"><button class="button secondary" data-action="lab-propose" data-value="add" ${dana?'disabled':''}>${icon('plus')}Add Dana</button><button class="button secondary" data-action="lab-propose" data-value="remove" ${!bob.active?'disabled':''}>${icon('minus')}Remove Bob</button><button class="button secondary" data-action="lab-propose" data-value="update">${icon('refresh')}Update Alice</button><button class="button secondary" data-action="lab-reset">${icon('back')}Reset lab</button></div><div class="pending"><div class="micro muted" style="font-size:9px">2 / Pending change</div><strong>${pendingText}</strong><span class="small">Membership stays the same until a Commit.</span><br><button class="button accent" data-action="lab-commit" ${!l.pending?'disabled':''}>Commit change ${icon('arrow')}</button></div><div class="lab-offline"><button class="text-button" data-action="lab-offline">${l.chenOnline?'Take Chen offline':'Reconnect Chen'}</button><button class="text-button" data-action="lab-catchup" ${!l.chenOnline||chen.known===l.epoch?'disabled':''}>Catch up Chen</button></div></div><div class="panel"><div class="epoch-top"><strong>Epoch ${l.epoch}</strong><span class="tag green">${active.length} active devices</span></div><div class="member-list">${l.members.map(m=>{const waiting=m.active&&(m.name==='Chen'&&(!l.chenOnline||m.known<l.epoch)); const status=!m.active?'Removed · old content retained':m.name==='Chen'&&!l.chenOnline?`Offline · has epoch ${m.known}`:m.known<l.epoch?`Needs ${l.epoch-m.known} Commit${l.epoch-m.known>1?'s':''}`:`Synced · epoch ${m.known}`;return `<div class="member ${!m.active?'removed':waiting?'waiting':''}"><span class="avatar">${m.name[0]}</span><div><strong>${m.name}</strong><small>${status}</small></div></div>`;}).join('')}</div><div class="event-log" role="log" aria-label="Group event log">${l.events.slice(-3).map(x=>`<p>${escapeHTML(x)}</p>`).join('')}</div><button class="text-button" data-action="lab-message">${icon('message')}Send a message from Alice</button></div></div>`;
+    }
+    function securitySlide() { return `${heading()}<p class="lead">Two security properties answer different questions about a leaked key.</p><div class="security-grid"><div><div class="subhead">Looking backward</div><h3>Forward secrecy</h3><p>Stealing current secret state should not reveal earlier messages whose message keys and obsolete state have been erased.</p></div><div><div class="subhead">Looking forward</div><h3>Post-compromise security</h3><p>After the attacker loses device access, a fresh update from the recovered client can restore confidentiality for future messages.</p></div></div><div id="security-demo" class="security-demo">${securityDemo()}</div><p class="small" style="margin-top:17px">This illustration assumes only Alice was compromised. Recovery needs fresh secret input, a cleaned endpoint, and successful Commit processing. Stored plaintext remains readable.</p>`; }
+    function securityDemo() {
+      const compromised=state.security==='exposed', healed=state.security==='healed';
+      const data=[['lock','Earlier messages','Protected if old secrets were erased',''],[compromised?'unlock':'lock','Current state',compromised?'Exposed to the attacker':healed?'Replaced after fresh update':'Known only to member devices',compromised?'exposed':''],[compromised?'unlock':healed?'lock':'clock','Future messages',compromised?'Vulnerable until a healing update':healed?'Protected after recovery':'Depends on evolving state',compromised?'exposed':healed?'':'future']];
+      const message=compromised?'Alice’s state has leaked. A per-message ratchet alone cannot remove the attacker’s knowledge.':healed?'Alice’s recovered device contributed fresh secrets. The group accepted the update and moved to a fresh epoch.':'Try the compromise, then recover Alice’s device and introduce a fresh update.';
+      return `<div class="security-states">${data.map(([i,t,d,c])=>`<div class="security-state ${c}">${icon(i)}<strong>${t}</strong><span>${d}</span></div>`).join('')}</div><p class="small security-message">${message}</p><div class="actions" style="margin-top:15px"><button class="button ${state.security!=='safe'?'secondary':'accent'}" data-action="security-expose" ${state.security!=='safe'?'disabled':''}>${icon('unlock')}Expose Alice’s state</button><button class="button ${compromised?'accent':'secondary'}" data-action="security-heal" ${!compromised?'disabled':''}>${icon('refresh')}Recover + update</button><button class="text-button" data-action="security-reset">Reset</button></div>`;
+    }
+    function lifecycleSlide() {
+      const s=lifecycleSteps[state.lifecycle];
+      return `${heading()}<p class="lead">Five steps connect an offline invitation to an encrypted conversation.</p><div class="lifecycle"><div class="step-list" role="tablist" aria-label="MLS lifecycle" aria-orientation="vertical">${lifecycleSteps.map((x,i)=>`<button class="step" role="tab" id="life-tab-${i}" aria-selected="${i===state.lifecycle}" aria-controls="lifecycle-detail" tabindex="${i===state.lifecycle?0:-1}" data-action="lifecycle" data-value="${i}"><span class="step-num">0${i+1}</span>${x.label}${i===state.lifecycle?icon('arrow'):''}</button>`).join('')}</div><div class="panel white-panel lifecycle-detail" id="lifecycle-detail" role="tabpanel" aria-labelledby="life-tab-${state.lifecycle}"><div class="flow-parties"><span class="flow-party">${icon(state.lifecycle===0?'device':'users')}${s.from}</span><span class="flow-link"></span><span class="flow-party">${icon(state.lifecycle===0?'server':'device')}${s.to}</span></div><div class="flow-label">${s.payload}</div><h3>${s.title}</h3><p class="small" style="font-size:13px">${s.text}</p><div class="callout">${s.note}</div><p class="small" style="margin-top:15px">${external(sourceURLs[s.source],'Read the operation guide')}</p></div></div>`;
+    }
+    function codeSlide() {
+      const c=codeExamples[state.codeTab];
+      return `${heading()}<p class="lead">A concrete path with OpenMLS, a Rust implementation of RFC 9420.</p><div class="code-layout"><div class="code-description"><div class="tabs" role="tablist" aria-label="OpenMLS code examples">${codeExamples.map((x,i)=>`<button class="tab" role="tab" id="code-tab-${i}" aria-selected="${i===state.codeTab}" aria-controls="code-detail" tabindex="${i===state.codeTab?0:-1}" data-action="code" data-value="${i}">${x.label}</button>`).join('')}</div><h3>${c.title}</h3><p class="small" style="font-size:13px">${c.description}</p><p class="small" style="margin-top:20px">${external(sourceURLs[c.source],'Open the complete documentation')}</p><div class="callout">Pin your library version and follow its current examples. Persist state changes and keep private keys on the device.</div></div><div class="code-panel" id="code-detail" role="tabpanel" aria-labelledby="code-tab-${state.codeTab}"><div class="code-bar"><i class="code-dot"></i><i class="code-dot"></i><i class="code-dot"></i><span>OpenMLS / Rust API excerpt</span></div><pre><code>${highlightCode(c.code)}</code></pre><div class="code-note">${c.note}</div></div></div>`;
+    }
+    function highlightCode(code) {
+      return code.split('\n').map(line=>{ if(line.trimStart().startsWith('//'))return `<span class="code-comment">${escapeHTML(line)}</span>`; return escapeHTML(line).replace(/\b(let|mut)\b/g,'<span class="code-keyword">$1</span>').replace(/(&quot;[^&]*?&quot;)/g,'<span class="code-string">$1</span>'); }).join('\n');
+    }
+    function integrationSlide() {
+      return `${heading()}<p class="lead">The protocol protects the conversation. Your system defines how people join it, deliver it, and recover it.</p><div class="architecture" role="img" aria-label="Authentication binds device identities. Client devices run MLS. The delivery service routes ciphertext."><div class="arch-box">${icon('shield')}<h3>Authentication</h3><p class="small">Bind identities to keys</p></div>${icon('arrow')}<div class="arch-box primary">${icon('device')}<h3>Client devices</h3><p class="small">MLS + private state</p></div>${icon('arrow')}<div class="arch-box">${icon('server')}<h3>Delivery</h3><p class="small">Route ciphertext</p></div></div><div class="responsibilities"><details><summary>Identity & membership policy</summary><p>Validate the binding between an account, its devices, and signing keys. Decide who can invite or remove members. A BasicCredential’s identity bytes alone do not prove a real-world identity.</p></details><details><summary>Ordering & offline recovery</summary><p>Choose one accepted Commit order, handle concurrent updates and retries, and retain the protocol messages offline clients need. Process missing commits before messages from a newer epoch.</p></details><details><summary>Storage & device lifecycle</summary><p>Persist group state securely and consistently. Delete obsolete secrets according to your forward-secrecy policy. Treat each device as a member, and revoke a lost device from its groups.</p></details><details><summary>History, metadata & availability</summary><p>Choose how new devices get history and how backups affect secrecy. Minimize routing metadata. Design for delayed or dropped messages. MLS alone does not provide anonymity or service availability.</p></details></div><div class="protocol-strip">${icon('check')}<span>A useful first integration test: create a group, invite an offline device, exchange a message, remove it, and confirm it cannot decrypt new-epoch content.</span></div>`;
+    }
+    function quizSlide() {
+      return `${heading()}<div class="quiz-layout"><div><p class="lead">Before you build, check the three distinctions that matter most.</p><div class="concept-list">${concept('clock','Change vs. committed state','A proposal is a request to change the group.')}${concept('key','Joining vs. history','A new member starts with new group state.')}${concept('server','Content vs. metadata','Different protections need different designs.')}</div></div><div id="quiz-content">${quizContent()}</div></div>`;
+    }
+    function quizContent() {
+      if(state.quizComplete){const score=state.quizAnswers.filter((a,i)=>a===quizQuestions[i].correct).length;return `<div class="panel"><div class="quiz-index">COMPLETE / THREE DISTINCTIONS</div><div class="quiz-score">${score}<span style="font-size:30px"> / 3</span></div><h3>${score===3?'You’ve got the model.':'The model is getting clearer.'}</h3><p class="small" style="margin-top:14px">Commits change the group. A Welcome starts a joining epoch. Content privacy still leaves application responsibilities.</p><div class="actions"><button class="button" data-action="next">What’s next ${icon('arrow')}</button><button class="text-button" data-action="quiz-reset">Try again</button></div></div>`;}
+      const q=quizQuestions[state.quizQuestion], selected=state.quizAnswers[state.quizQuestion], answered=selected!==undefined;
+      return `<div class="quiz-index">QUESTION 0${state.quizQuestion+1} / 03</div><h3 class="quiz-question">${q.question}</h3><div class="answers">${q.options.map((o,i)=>`<button class="answer ${answered&&i===q.correct?'correct':answered&&i===selected?'incorrect':''}" data-action="quiz-answer" data-value="${i}" ${answered?'disabled':''}><span class="answer-letter">${String.fromCharCode(65+i)}</span><span>${o}${answered&&i===q.correct?' <strong>(Correct)</strong>':''}</span></button>`).join('')}</div><p class="quiz-feedback" role="status">${answered?`<strong>${selected===q.correct?'Exactly.':'A useful distinction.'}</strong> ${q.feedback}`:'Select an answer to see why.'}</p>${answered?`<button class="button" data-action="quiz-next">${state.quizQuestion===2?'See your result':'Next question'} ${icon('arrow')}</button>`:''}`;
+    }
+    function closingSlide() {
+      return `<div class="closing"><div class="eyebrow">A shared understanding</div><h2 id="slide-title" tabindex="-1">Private by design. <br><span class="serif">Built for the group.</span></h2><p class="lead">E2EE keeps content keys with the participants.<br>MLS helps those participants agree on fresh keys as their group changes.</p><div class="actions"><button class="button" data-action="go" data-value="6">Revisit the epoch lab ${icon('arrow')}</button><button class="text-button" data-action="go" data-value="0">Back to the beginning</button></div><div class="closing-links"><div class="closing-link"><a href="${sourceURLs.protocol}" target="_blank" rel="noopener noreferrer">The protocol ${icon('external')}</a><p>RFC 9420<br>Message formats and cryptographic operations.</p></div><div class="closing-link"><a href="${sourceURLs.architecture}" target="_blank" rel="noopener noreferrer">The architecture ${icon('external')}</a><p>RFC 9750<br>Trust, infrastructure, and application design.</p></div><div class="closing-link"><a href="${sourceURLs.openmls}" target="_blank" rel="noopener noreferrer">Build with OpenMLS ${icon('external')}</a><p>The official book<br>Rust APIs and complete operation examples.</p></div></div></div>`;
+    }
+
+    const stage=document.getElementById('stage'), modal=document.getElementById('modal');
+    function announce(text) { document.getElementById('announcer').textContent=text; }
+    function readSlideHash() { const m=location.hash.match(/^#slide=(\d+)$/); return m?Math.max(0,Math.min(slides.length-1,Number(m[1])-1)):0; }
+    function render(focus=false) {
+      const s=slides[state.slide];
+      stage.innerHTML=`<article class="slide ${state.slide===0?'cover':''}" aria-labelledby="slide-title"><div class="slide-content">${s.render()}</div><div class="slide-foot"><span>${external(sourceURLs[s.source],s.sourceLabel)}</span><span class="folio">${String(state.slide+1).padStart(2,'0')} / ${slides.length}</span></div></article>`;
+      document.getElementById('chapters').innerHTML=chapters.map((n,i)=>`<button class="chapter" data-action="go" data-value="${chapterStarts[i]}" ${i===s.chapter?'aria-current="step"':''}><span>0${i+1}</span>${n}</button>`).join('');
+      document.getElementById('progress').innerHTML=slides.map((x,i)=>`<button data-action="go" data-value="${i}" class="${i<state.slide?'past':''}" aria-label="Slide ${i+1}: ${x.title}" ${i===state.slide?'aria-current="step"':''} title="${i+1}. ${x.title}"></button>`).join('');
+      document.getElementById('counter').textContent=`${String(state.slide+1).padStart(2,'0')} / ${slides.length}`;
+      document.querySelector('[data-action="prev"]').disabled=state.slide===0;
+      document.querySelector('.slide-controls [data-action="next"]').disabled=state.slide===slides.length-1;
+      renderNotes();
+      document.title=`${state.slide+1}. ${s.title} — MLS, explained`;
+      if(focus)document.getElementById('slide-title').focus({preventScroll:true});
+      announce(`Slide ${state.slide+1} of ${slides.length}. ${s.title}`);
+      if(document.fullscreenElement)requestAnimationFrame(fitFullscreen);
+    }
+    function navigate(index) {
+      const n=Math.max(0,Math.min(slides.length-1,index));
+      if(n===state.slide)return;
+      state.slide=n;
+      try { history.pushState(null,'',`#slide=${n+1}`); } catch { /* Embedded viewers may restrict history. */ }
+      if(modal.open)modal.close();
+      render(true);
+    }
+    function renderNotes() { const notes=document.getElementById('notes'); notes.hidden=!state.notes; notes.innerHTML=`<h3>Speaker notes / Slide ${state.slide+1}</h3><p>${slides[state.slide].notes}</p>`; document.querySelector('[data-action="notes"]').setAttribute('aria-pressed',String(state.notes)); if(document.fullscreenElement)requestAnimationFrame(fitFullscreen); }
+    function toggleNotes() { state.notes=!state.notes; renderNotes(); announce(state.notes?'Speaker notes opened.':'Speaker notes closed.'); }
+    function refresh(focusSelector, message) { render(); const element=focusSelector&&document.querySelector(focusSelector); if(element&&!element.disabled)element.focus({preventScroll:true}); if(message)announce(message); }
+    function openDialog(kind) {
+      const close=`<button class="tool" data-action="close" aria-label="Close dialog">${icon('close')}</button>`;
+      if(kind==='overview')modal.innerHTML=`<div class="dialog-heading"><h2 id="dialog-title">The whole conversation.</h2>${close}</div><div class="overview-grid">${slides.map((s,i)=>`<button class="overview-item" data-action="go" data-value="${i}" ${i===state.slide?'aria-current="step"':''}><span class="micro">${String(i+1).padStart(2,'0')} / ${chapters[s.chapter]}</span><strong>${s.title}</strong></button>`).join('')}</div>`;
+      if(kind==='sources'){
+        const sources=[['protocol','RFC 9420 / The MLS Protocol','July 2023. Key agreement, ratchet trees, epochs, KeyPackages, Commits, and application message protection.'],['architecture','RFC 9750 / The MLS Architecture','April 2025. Security goals, authentication and delivery services, and application responsibilities.'],['openmls','OpenMLS / The official book','Rust implementation guide. The Add, Welcome, application message, and processing pages support the API excerpts.'],['pgp','Philip Zimmermann / Why I Wrote PGP','The original 1991 guide, later updated. Context for personal encryption and the PGP milestone.'],['otr','Off-the-Record Messaging / Project and papers','Forward secrecy and deniable messaging. The project page links its WPES 2004 paper.'],['signal','Signal / The Double Ratchet Algorithm','The two-party symmetric and Diffie–Hellman ratchets. The live specification includes later revisions.'],['announcement','IETF / MLS publication announcement','19 July 2023. The publication and purpose of the MLS standard.']];
+        modal.innerHTML=`<div class="dialog-heading"><h2 id="dialog-title">Go to the source.</h2>${close}</div><p class="small" style="margin-bottom:20px">Technical content uses primary sources. The diagrams, envelope model, and group lab are simplified teaching aids. They do not execute MLS. API excerpts omit setup and have not been compiled.</p><div class="source-list">${sources.map(([k,t,d])=>`<div class="source-item">${external(sourceURLs[k],t)}<p>${d}</p></div>`).join('')}</div>`;
+      }
+      if(kind==='help')modal.innerHTML=`<div class="dialog-heading"><h2 id="dialog-title">Make it your presentation.</h2>${close}</div><p class="small" style="margin-bottom:25px">Use the arrow buttons or slide markers to move. Chapter tabs jump to a section. Select the controls inside each slide to explore its demonstration.</p><div class="shortcut-list"><span>Next slide <kbd>→ / Space</kbd></span><span>Previous slide <kbd>←</kbd></span><span>First / last slide <kbd>Home / End</kbd></span><span>Slide overview <kbd>O</kbd></span><span>Speaker notes <kbd>N</kbd></span><span>References <kbd>R</kbd></span><span>Fullscreen <kbd>F</kbd></span><span>Shortcuts <kbd>?</kbd></span><span>Close dialog <kbd>Esc</kbd></span><span>Interact with controls <kbd>Tab / Enter</kbd></span></div><p class="small" style="margin-top:25px">Tab groups support arrow keys. All exercises stay in this tab and reset when the file reloads. Share a specific slide with its #slide=number URL.</p>`;
+      if(!modal.open)modal.showModal();
+    }
+    function addLabEvent(text) { state.lab.events.push(text); if(state.lab.events.length>12)state.lab.events.shift(); }
+    function labAction(action,value) {
+      const l=state.lab;
+      let message='';
+      if(action==='lab-reset'){state.lab=freshLab();message='Lab reset to epoch 0.';}
+      if(action==='lab-propose'){
+        const allowed=value==='update'||value==='add'&&!l.members.some(m=>m.name==='Dana')||value==='remove'&&l.members.some(m=>m.name==='Bob'&&m.active);
+        if(!allowed)return;
+        l.pending=value; message='Change proposed. The epoch and active membership have not changed.';
+      }
+      if(action==='lab-commit'){
+        if(!l.pending)return;
+        l.epoch++;
+        if(l.pending==='add'){l.members.push({name:'Dana',known:l.epoch,joined:l.epoch,active:true});message=`Epoch ${l.epoch}: Dana joins with a Welcome. Earlier history is not included.`;}
+        if(l.pending==='remove'){l.members.find(m=>m.name==='Bob').active=false;message=`Epoch ${l.epoch}: Bob is removed. He retains old content but receives no new group secrets.`;}
+        if(l.pending==='update')message=`Epoch ${l.epoch}: Alice contributes a fresh leaf and path update.`;
+        for(const m of l.members)if(m.active&&(m.name!=='Chen'||l.chenOnline))m.known=l.epoch;
+        l.pending=null;addLabEvent(message);
+      }
+      if(action==='lab-offline'){l.chenOnline=!l.chenOnline;message=l.chenOnline?'Chen is online. Catch up any missing Commits before processing new-epoch content.':'Chen is offline. Subsequent Commits will queue for catch-up.';addLabEvent(message);}
+      if(action==='lab-catchup'){const chen=l.members.find(m=>m.name==='Chen');if(!l.chenOnline||chen.known===l.epoch)return; const count=l.epoch-chen.known;chen.known=l.epoch;message=`Chen processes ${count} queued Commit${count===1?'':'s'} and reaches epoch ${l.epoch}.`;addLabEvent(message);}
+      if(action==='lab-message'){
+        const readers=l.members.filter(m=>m.active&&(m.name!=='Chen'||l.chenOnline)&&m.known===l.epoch).map(m=>m.name);
+        const chen=l.members.find(m=>m.name==='Chen');
+        message=`Epoch ${l.epoch} message: readable by ${readers.join(', ')}.`;
+        if(!l.chenOnline||chen.known<l.epoch)message+=' Chen’s delivery waits for reconnection and any missing Commits.';
+        const bob=l.members.find(m=>m.name==='Bob');if(!bob.active)message+=' Bob cannot decrypt this new-epoch message.';
+        addLabEvent(message);
+      }
+      const focusAction=action==='lab-commit'?'lab-message':action==='lab-propose'?'lab-commit':action==='lab-catchup'?'lab-message':action;
+      document.getElementById('lab-content').innerHTML=labContent();
+      const control=document.querySelector(`[data-action="${focusAction}"]`);if(control&&!control.disabled)control.focus({preventScroll:true});
+      announce(message);
+      if(document.fullscreenElement)requestAnimationFrame(fitFullscreen);
+    }
+    function fitFullscreen() {
+      const app=document.getElementById('app');
+      app.style.removeProperty('zoom');
+      if(!document.fullscreenElement)return;
+      const bounds=app.getBoundingClientRect();
+      const scale=Math.min(1,innerWidth/bounds.width,(innerHeight-16)/(bounds.height+16));
+      app.style.zoom=String(scale);
+    }
+    async function fullscreen() {
+      try { if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else throw new Error('unavailable'); }
+      catch { const t=document.getElementById('toast');t.textContent='Fullscreen is unavailable in this viewer. Open index.html in a browser to present.';t.hidden=false;setTimeout(()=>t.hidden=true,4500); }
+    }
+    document.addEventListener('click',event=>{
+      const target=event.target.closest('[data-action]'); if(!target||target.disabled)return;
+      const action=target.dataset.action, value=target.dataset.value, n=Number(value);
+      if(action==='go'){if(n===state.slide&&modal.open){modal.close();document.getElementById('slide-title').focus();}else navigate(n);}
+      else if(action==='next')navigate(state.slide+1);
+      else if(action==='prev')navigate(state.slide-1);
+      else if(action==='notes')toggleNotes();
+      else if(['sources','overview','help'].includes(action))openDialog(action);
+      else if(action==='close')modal.close();
+      else if(action==='fullscreen')fullscreen();
+      else if(action==='transport'){state.transport=value;refresh(`[data-action="transport"][data-value="${value}"]`,value==='e2ee'?'E2EE: the service sees ciphertext.':'Transport encryption: the service can read message content.');}
+      else if(action==='milestone'){state.milestone=n;refresh(`[data-action="milestone"][data-value="${n}"]`,milestones[n].title);}
+      else if(action==='tree-member'){
+        state.treeMember=n;document.getElementById('tree-diagram').innerHTML=treeDiagram();document.getElementById('tree-reading').innerHTML=treeReading();document.querySelectorAll('[data-action="tree-member"]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.value)===n)));announce(`${treeNames[n]} updates its leaf and three ancestors.`);
+      }
+      else if(action.startsWith('lab-'))labAction(action,value);
+      else if(action.startsWith('security-')){state.security=action==='security-expose'?'exposed':action==='security-heal'?'healed':'safe';document.getElementById('security-demo').innerHTML=securityDemo();document.querySelector(`[data-action="${state.security==='exposed'?'security-heal':state.security==='healed'?'security-reset':'security-expose'}"]`).focus({preventScroll:true});announce(state.security==='exposed'?'Alice’s current state is exposed. Future messages are vulnerable until recovery.':state.security==='healed'?'Fresh secrets restore protection after recovery and an accepted update.':'Compromise demonstration reset.');}
+      else if(action==='lifecycle'){state.lifecycle=n;refresh(`[data-action="lifecycle"][data-value="${n}"]`,lifecycleSteps[n].title);}
+      else if(action==='code'){state.codeTab=n;refresh(`[data-action="code"][data-value="${n}"]`,codeExamples[n].title);}
+      else if(action==='quiz-answer'){
+        if(state.quizAnswers[state.quizQuestion]!==undefined)return;
+        state.quizAnswers[state.quizQuestion]=n;document.getElementById('quiz-content').innerHTML=quizContent();document.querySelector('[data-action="quiz-next"]').focus({preventScroll:true});announce(quizQuestions[state.quizQuestion].feedback);
+      }
+      else if(action==='quiz-next'){
+        if(state.quizAnswers[state.quizQuestion]===undefined)return;
+        if(state.quizQuestion===2)state.quizComplete=true;else state.quizQuestion++;
+        document.getElementById('quiz-content').innerHTML=quizContent();
+        document.querySelector(state.quizComplete?'#quiz-content [data-action="next"]':'[data-action="quiz-answer"]').focus({preventScroll:true});
+      }
+      else if(action==='quiz-reset'){state.quizQuestion=0;state.quizAnswers=[];state.quizComplete=false;document.getElementById('quiz-content').innerHTML=quizContent();document.querySelector('[data-action="quiz-answer"]').focus({preventScroll:true});}
+    });
+    document.addEventListener('input',event=>{
+      if(event.target.id!=='group-range')return;
+      state.groupPower=Number(event.target.value);const n=2**state.groupPower;
+      document.getElementById('group-size').textContent=n.toLocaleString();event.target.setAttribute('aria-valuetext',`${n} member devices`);
+      document.getElementById('scale-counts').innerHTML=scaleCounts();document.getElementById('scale-chart').innerHTML=scaleChart();
+    });
+    document.addEventListener('keydown',event=>{
+      if(event.altKey||event.metaKey||event.ctrlKey||event.target.closest('input, textarea, select, [contenteditable="true"]'))return;
+      const tablist=event.target.closest('[role="tablist"]');
+      if(tablist&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)){
+        const tabs=Array.from(tablist.querySelectorAll('[role="tab"]')), index=tabs.indexOf(event.target.closest('[role="tab"]'));
+        let next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(['ArrowLeft','ArrowUp'].includes(event.key)?-1:1)+tabs.length)%tabs.length;
+        event.preventDefault();tabs[next].click();return;
+      }
+      if(modal.open)return;
+      if(event.key===' '&&event.target.closest('button,a,summary'))return;
+      const key=event.key.toLowerCase();
+      if(['ArrowRight','PageDown',' '].includes(event.key)){event.preventDefault();navigate(state.slide+1);}
+      else if(['ArrowLeft','PageUp'].includes(event.key)){event.preventDefault();navigate(state.slide-1);}
+      else if(event.key==='Home'){event.preventDefault();navigate(0);}
+      else if(event.key==='End'){event.preventDefault();navigate(slides.length-1);}
+      else if(key==='o')openDialog('overview');
+      else if(key==='n')toggleNotes();
+      else if(key==='r')openDialog('sources');
+      else if(key==='f')fullscreen();
+      else if(key==='?')openDialog('help');
+    });
+    document.querySelector('.skip').addEventListener('click',event=>{event.preventDefault();document.getElementById('slide-title').focus();});
+    window.addEventListener('popstate',()=>{state.slide=readSlideHash();render(true);});
+    window.addEventListener('hashchange',()=>{if(location.hash==='#slide-title')return;const n=readSlideHash();if(n!==state.slide){state.slide=n;render(true);}});
+    document.addEventListener('fullscreenchange',()=>{document.querySelector('[data-action="fullscreen"]').setAttribute('aria-label',document.fullscreenElement?'Exit fullscreen':'Enter fullscreen');fitFullscreen();});
+    window.addEventListener('resize',()=>{if(document.fullscreenElement)requestAnimationFrame(fitFullscreen);});
+    document.addEventListener('toggle',event=>{if(event.target.tagName==='DETAILS'&&document.fullscreenElement)requestAnimationFrame(fitFullscreen);},true);
+    document.getElementById('brand-icon').innerHTML=icon('tree');
+    const toolIcons={sources:'book',notes:'notes',overview:'grid',fullscreen:'fullscreen',prev:'back',next:'arrow'};
+    document.querySelectorAll('.tools button,.slide-controls button').forEach(b=>b.innerHTML=icon(toolIcons[b.dataset.action]));
+    state.slide=readSlideHash();
+    render();
+  </script>
+</body>
+</html>

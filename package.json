@@ -1,0 +1,16 @@
+{
+  "name": "mls-explained",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An interactive, standalone presentation about Messaging Layer Security.",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.65.0"
+  }
+}
